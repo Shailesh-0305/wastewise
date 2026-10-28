@@ -4,6 +4,9 @@
 > Problem: Poor waste segregation and inefficient collection create environmental problems.  
 > Purpose: Empower citizens to report waste, classify recyclable materials using AI, track collection in real time, and assist municipal collection teams with route-optimized pickups.
 
+🚀 **Live Hosted App**: **[https://shailesh-0305.github.io/wastewise/](https://shailesh-0305.github.io/wastewise/)**  
+📂 **GitHub Repository**: **[https://github.com/Shailesh-0305/wastewise](https://github.com/Shailesh-0305/wastewise)**
+
 ---
 
 ## ✨ Features
