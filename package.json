@@ -1,0 +1,28 @@
+{
+  "name": "wastewise",
+  "version": "1.0.0",
+  "description": "WasteWise – Smart Waste Management Platform (FSD Mini Project)",
+  "scripts": {
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"green.bold,cyan.bold\" \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "install-all": "npm install && npm install --prefix server && npm install --prefix client",
+    "seed": "npm run seed --prefix server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Shailesh-0305/wastewise.git"
+  },
+  "keywords": [
+    "waste-management",
+    "fsd",
+    "mern",
+    "ai-classifier",
+    "route-optimization"
+  ],
+  "author": "Shailesh-0305",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
