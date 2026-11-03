@@ -144,49 +144,72 @@ export default function GreenJourneyLanding({ onOpenAuth }) {
     };
   }, []);
 
-  // Scroll listener: updates truck position strictly along the dedicated road spine
+  // Scroll listener: locks the truck to the VERTICAL CENTRE of the screen (50vh)
+  // As the visitor scrolls, the truck follows the road curves right in the middle of their viewport
   useEffect(() => {
     if (isReducedMotion) return;
 
     let rafId = null;
 
     const handleScroll = () => {
-      if (!journeyRef.current || !pathRef.current || !truckRef.current) return;
-
-      const rect = journeyRef.current.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-
-      // Track scroll progress within the storytelling container
-      const totalScrollable = rect.height - viewportHeight * 0.35;
-      const currentScroll = viewportHeight * 0.45 - rect.top;
-      const rawProgress = Math.min(Math.max(currentScroll / totalScrollable, 0), 1);
-
-      // Identify active stage
-      const stageIdx = Math.min(Math.floor(rawProgress * 5), 4);
-      setActiveStage(stageIdx);
+      if (!pathRef.current || !truckRef.current) return;
 
       const path = pathRef.current;
-      const totalLength = path.getTotalLength();
-      const distance = rawProgress * totalLength;
+      const svgEl = path.ownerSVGElement;
+      if (!svgEl) return;
 
-      const pt = path.getPointAtLength(distance);
-      const lookAhead = Math.min(distance + 3, totalLength);
+      const svgRect = svgEl.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+
+      // Bring truck to the vertical centre of the screen
+      const desiredScreenY = viewportHeight * 0.5;
+      const targetScreenY = desiredScreenY - svgRect.top;
+
+      const scaleY = svgRect.height / 2800;
+      const scaleX = svgRect.width / 100;
+
+      // Target Y in SVG viewBox coordinates (0 to 2800)
+      const targetSvgY = Math.min(Math.max(targetScreenY / scaleY, 40), 2672);
+
+      // Binary search along the path for the distance where pt.y matches targetSvgY
+      const totalLength = path.getTotalLength();
+      let low = 0;
+      let high = totalLength;
+      let bestDist = 0;
+
+      for (let i = 0; i < 14; i++) {
+        const mid = (low + high) / 2;
+        const p = path.getPointAtLength(mid);
+        if (p.y <= targetSvgY) {
+          bestDist = mid;
+          low = mid;
+        } else {
+          high = mid;
+        }
+      }
+
+      // If at or past Stage 5 circular loop, advance smoothly around the loop
+      if (targetSvgY >= 2520) {
+        const loopStartDist = bestDist;
+        const loopRemaining = totalLength - loopStartDist;
+        const loopProgress = Math.min(Math.max((targetSvgY - 2520) / 152, 0), 1);
+        bestDist = loopStartDist + loopProgress * loopRemaining;
+      }
+
+      const pt = path.getPointAtLength(bestDist);
+      const lookAhead = Math.min(bestDist + 3, totalLength);
       const ptNext = path.getPointAtLength(lookAhead);
 
       const dx = ptNext.x - pt.x;
       const dy = ptNext.y - pt.y;
 
-      const svgEl = path.ownerSVGElement;
-      if (!svgEl) return;
-      const svgRect = svgEl.getBoundingClientRect();
-
-      // SVG path coordinate space is 100 width x 2800 height
-      const scaleX = svgRect.width / 100;
-      const scaleY = svgRect.height / 2800;
-
       const screenX = pt.x * scaleX;
       const screenY = pt.y * scaleY;
       const screenAngle = Math.atan2(dy * scaleY, dx * scaleX) * (180 / Math.PI);
+
+      // Identify active stage (0 to 4)
+      const stageIdx = Math.min(Math.floor((pt.y / 2800) * 5), 4);
+      setActiveStage(stageIdx);
 
       truckRef.current.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) translate(-50%, -50%) rotate(${screenAngle}deg)`;
     };
@@ -294,16 +317,16 @@ export default function GreenJourneyLanding({ onOpenAuth }) {
 
   // Dedicated Road Spine Path: strictly confined within a 100px wide channel (viewBox 0 0 100 2800)
   // Gentle organic S-curves that NEVER stray outside x: [30, 70]
-  // Finishes at Stage 5 in a circular recycling loop centered at x: 50, y: 2620
+  // Checkpoints at stage centers: 280, 840, 1400, 1960, and loops at 2520
   const roadSpinePath = `
     M 50,40
-    C 50,180 65,260 65,360
-    C 65,520 35,680 35,900
-    C 35,1120 65,1280 65,1480
-    C 65,1680 35,1840 35,2040
-    C 35,2240 50,2380 50,2540
-    A 26,26 0 1,1 50,2690
-    A 26,26 0 1,1 50,2540
+    C 50,140 65,180 65,280
+    C 65,460 35,640 35,840
+    C 35,1040 65,1200 65,1400
+    C 65,1600 35,1760 35,1960
+    C 35,2160 50,2340 50,2520
+    A 26,26 0 1,1 50,2672
+    A 26,26 0 1,1 50,2520
   `;
 
   return (
@@ -562,87 +585,84 @@ export default function GreenJourneyLanding({ onOpenAuth }) {
           </p>
         </div>
 
-        {/* Dedicated Road Spine Overlay */}
-        {/* On desktop: exactly in the center spine (width: 100px, left: 50%, transform: translateX(-50%)) */}
-        {/* On mobile: in the left gutter (width: 44px, left: 14px) */}
-        <div 
-          style={{
-            position: 'absolute',
-            top: 230,
-            bottom: 40,
-            left: isMobile ? 14 : '50%',
-            transform: isMobile ? 'none' : 'translateX(-50%)',
-            width: isMobile ? 44 : 100,
-            pointerEvents: 'none',
-            zIndex: 15
-          }}
-          aria-hidden="true"
-        >
-          <svg 
-            viewBox="0 0 100 2800" 
-            preserveAspectRatio="none" 
-            style={{ width: '100%', height: '100%', overflow: 'visible' }}
-          >
-            {/* Road Outer Surface */}
-            <path 
-              d={roadSpinePath} 
-              fill="none" 
-              stroke="#D1FAE5" 
-              strokeWidth="16" 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              opacity="0.9"
-            />
-            {/* Road Inner Green Line */}
-            <path 
-              d={roadSpinePath} 
-              fill="none" 
-              stroke="#EAF6EA" 
-              strokeWidth="10" 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-            />
-            {/* Dashed Center Guidance Line */}
-            <path 
-              ref={pathRef}
-              d={roadSpinePath} 
-              fill="none" 
-              stroke="#15803D" 
-              strokeWidth="2" 
-              strokeDasharray="6, 5" 
-              strokeLinecap="round" 
-            />
-
-            {/* Checkpoint Nodes along the road */}
-            <circle cx="65" cy="360" r="10" fill="#FFFFFF" stroke="#166534" strokeWidth="3" />
-            <circle cx="35" cy="900" r="10" fill="#FFFFFF" stroke="#166534" strokeWidth="3" />
-            <circle cx="65" cy="1480" r="10" fill="#FFFFFF" stroke="#166534" strokeWidth="3" />
-            <circle cx="35" cy="2040" r="10" fill="#FFFFFF" stroke="#166534" strokeWidth="3" />
-            <circle cx="50" cy="2615" r="12" fill="#166534" stroke="#86EFAC" strokeWidth="3" />
-          </svg>
-
-          {/* Traveling Green Municipal Mini-Truck */}
-          {!isReducedMotion && (
-            <div 
-              ref={truckRef}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                willChange: 'transform',
-                transform: 'translate3d(50px, 40px, 0) translate(-50%, -50%)',
-                zIndex: 25,
-                pointerEvents: 'none'
-              }}
-            >
-              <GreenTruckSVG size={isMobile ? 38 : 52} />
-            </div>
-          )}
-        </div>
-
-        {/* 5 Connected Stages: Each section has a visible photographic background */}
+        {/* 5 Connected Stages with Integrated Central Road Spine */}
         {/* Content sits in left and right columns safely away from the center 100px spine */}
         <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column' }}>
+          {/* Dedicated Road Spine Overlay directly spanning the 5 stages */}
+          <div 
+            style={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              left: isMobile ? 14 : '50%',
+              transform: isMobile ? 'none' : 'translateX(-50%)',
+              width: isMobile ? 44 : 100,
+              pointerEvents: 'none',
+              zIndex: 15
+            }}
+            aria-hidden="true"
+          >
+            <svg 
+              viewBox="0 0 100 2800" 
+              preserveAspectRatio="none" 
+              style={{ width: '100%', height: '100%', overflow: 'visible' }}
+            >
+              {/* Road Outer Surface */}
+              <path 
+                d={roadSpinePath} 
+                fill="none" 
+                stroke="#D1FAE5" 
+                strokeWidth="16" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                opacity="0.9"
+              />
+              {/* Road Inner Green Line */}
+              <path 
+                d={roadSpinePath} 
+                fill="none" 
+                stroke="#EAF6EA" 
+                strokeWidth="10" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+              />
+              {/* Dashed Center Guidance Line */}
+              <path 
+                ref={pathRef}
+                d={roadSpinePath} 
+                fill="none" 
+                stroke="#15803D" 
+                strokeWidth="2" 
+                strokeDasharray="6, 5" 
+                strokeLinecap="round" 
+              />
+
+              {/* Checkpoint Nodes along the road positioned at stage centers */}
+              <circle cx="65" cy="280" r="10" fill="#FFFFFF" stroke="#166534" strokeWidth="3" />
+              <circle cx="35" cy="840" r="10" fill="#FFFFFF" stroke="#166534" strokeWidth="3" />
+              <circle cx="65" cy="1400" r="10" fill="#FFFFFF" stroke="#166534" strokeWidth="3" />
+              <circle cx="35" cy="1960" r="10" fill="#FFFFFF" stroke="#166534" strokeWidth="3" />
+              <circle cx="50" cy="2520" r="12" fill="#166534" stroke="#86EFAC" strokeWidth="3" />
+            </svg>
+
+            {/* Traveling Green Municipal Mini-Truck */}
+            {!isReducedMotion && (
+              <div 
+                ref={truckRef}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  willChange: 'transform',
+                  transform: 'translate3d(50px, 40px, 0) translate(-50%, -50%)',
+                  zIndex: 25,
+                  pointerEvents: 'none'
+                }}
+              >
+                <GreenTruckSVG size={isMobile ? 38 : 52} />
+              </div>
+            )}
+          </div>
           {stages.map((stage, idx) => {
             const isEven = idx % 2 === 1;
 
