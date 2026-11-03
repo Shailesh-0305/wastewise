@@ -4,7 +4,6 @@ import {
   MapPin, 
   Calendar, 
   BarChart3, 
-  Sparkles, 
   PlusCircle, 
   LogOut,
   LogIn,
@@ -16,10 +15,9 @@ export default function Navbar({
   setActiveTab, 
   currentUser, 
   onOpenPickup, 
-  onOpenScanner, 
   onOpenAuth, 
   onLogout, 
-  userPoints = 1250 
+  userPoints = 0 
 }) {
   const navTabs = [
     { id: 'home', label: 'Citizen Portal', icon: Recycle },
@@ -117,28 +115,6 @@ export default function Navbar({
 
         {/* Right Action Controls & User Account */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          {/* AI Scanner Button */}
-          <button
-            onClick={onOpenScanner}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              background: 'var(--pale-green-section)',
-              color: 'var(--primary-forest)',
-              border: '1px solid var(--soft-leaf-green)',
-              padding: '7px 13px',
-              borderRadius: 999,
-              fontWeight: 700,
-              fontSize: '0.82rem',
-              transition: 'all 0.2s'
-            }}
-            title="Scan waste with AI classifier"
-          >
-            <Sparkles size={15} color="var(--secondary-green)" />
-            <span>AI Scan</span>
-          </button>
-
           {/* Quick Pickup Request */}
           <button
             onClick={onOpenPickup}
@@ -149,22 +125,24 @@ export default function Navbar({
             <span>Request Pickup</span>
           </button>
 
-          {/* Eco Points Pill */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            background: '#ffffff',
-            border: '1.5px solid var(--soft-leaf-green)',
-            padding: '5px 12px',
-            borderRadius: 999,
-            boxShadow: '0 1px 4px rgba(0,0,0,0.03)'
-          }}>
-            <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--secondary-green)' }} />
-            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--primary-forest)' }}>
-              {userPoints.toLocaleString()} <span style={{ fontWeight: 600, color: 'var(--secondary-text)' }}>pts</span>
-            </span>
-          </div>
+          {/* Eco Points Pill (Shown for logged-in users) */}
+          {currentUser && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              background: '#ffffff',
+              border: '1.5px solid var(--soft-leaf-green)',
+              padding: '5px 12px',
+              borderRadius: 999,
+              boxShadow: '0 1px 4px rgba(0,0,0,0.03)'
+            }}>
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--secondary-green)' }} />
+              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--primary-forest)' }}>
+                {userPoints.toLocaleString()} <span style={{ fontWeight: 600, color: 'var(--secondary-text)' }}>pts</span>
+              </span>
+            </div>
+          )}
 
           {/* User Profile / Auth State Pill */}
           {currentUser ? (

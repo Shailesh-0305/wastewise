@@ -98,125 +98,119 @@ input, select, textarea {
 .badge-electronic { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
 .badge-medical { background: #ffe4e6; color: #be123c; border: 1px solid #fecdd3; }
 .badge-recyclable { background: #d1fae5; color: #047857; border: 1px solid #a7f3d0; }
-.badge-metal { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; }
+.badge-metal { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
 .badge-glass { background: #ccfbf1; color: #0f766e; border: 1px solid #99f6e4; }
+.badge-general { background: #f3f4f6; color: #4b5563; border: 1px solid #e5e7eb; }
 
-.badge-reported { background: #fef9c3; color: #854d0e; border: 1px solid #fef08a; }
-.badge-assigned { background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
-.badge-inprogress { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+/* Status Badges */
+.badge-reported { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+.badge-confirmed { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.badge-assigned { background: #faf5ff; color: #7e22ce; border: 1px solid #e9d5ff; }
+.badge-inprogress { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
 .badge-collected { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
-.badge-recycled { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
-.badge-cancelled { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
+.badge-recycled { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+.badge-cancelled { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
 
-/* Buttons */
+/* Clean Nature Buttons */
 .btn-primary {
-  background: var(--primary-forest);
-  color: #ffffff;
-  padding: 10px 22px;
-  border-radius: var(--radius-full);
-  font-weight: 600;
-  font-size: 0.9rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  background-color: var(--primary-forest);
+  color: #ffffff;
+  padding: 10px 20px;
+  border-radius: var(--radius-full);
+  font-weight: 700;
+  font-size: 0.88rem;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 12px rgba(22, 101, 52, 0.2);
+  box-shadow: 0 4px 12px rgba(22, 101, 52, 0.22);
 }
 
 .btn-primary:hover {
-  background: var(--secondary-green);
-  transform: translateY(-1.5px);
-  box-shadow: 0 6px 18px rgba(22, 101, 52, 0.28);
+  background-color: #12532a;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(22, 101, 52, 0.28);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
 }
 
 .btn-secondary {
-  background: #ffffff;
-  color: var(--primary-forest);
-  border: 1.5px solid var(--border-light);
-  padding: 9px 18px;
-  border-radius: var(--radius-full);
-  font-weight: 600;
-  font-size: 0.88rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  background-color: #ffffff;
+  color: var(--primary-forest);
+  border: 1.5px solid var(--border-light);
+  padding: 10px 18px;
+  border-radius: var(--radius-full);
+  font-weight: 700;
+  font-size: 0.88rem;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
 }
 
 .btn-secondary:hover {
-  background: var(--pale-green-section);
-  border-color: var(--soft-leaf-green);
+  border-color: var(--secondary-green);
+  background-color: var(--very-light-mint);
+  color: var(--secondary-green);
 }
 
-.btn-mint {
-  background: #dcfce7;
-  color: var(--primary-forest);
-  border: 1.5px solid var(--soft-leaf-green);
-  padding: 10px 22px;
-  border-radius: var(--radius-full);
-  font-weight: 700;
-  font-size: 0.9rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.2s ease;
-}
-
-.btn-mint:hover {
-  background: #bbf7d0;
-  transform: translateY(-1.5px);
-}
-
-/* Light Nature Cards */
-.card {
-  background: var(--card-background);
-  border-radius: var(--radius-lg);
-  padding: 24px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border-light);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-}
-
-.card:hover {
-  box-shadow: var(--shadow-md);
-  border-color: #cbdad0;
-  transform: translateY(-1px);
-}
-
-/* Pale Green Nature Containers */
+/* Nature Pale Green Hero / Header Containers */
 .pale-green-box {
-  background: var(--pale-green-section);
-  border: 1px solid #d4ebd6;
+  background-color: var(--pale-green-section);
+  border: 1.5px solid var(--soft-leaf-green);
   border-radius: var(--radius-lg);
   position: relative;
   overflow: hidden;
 }
 
-/* Nature Tree Sway & Leaf Drift Animations */
+/* White Clean Cards */
+.card {
+  background-color: var(--card-background);
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: #d1e5d5;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 35, 23, 0.45);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+/* Subtle Nature Animations */
 @keyframes treeSway {
-  0% { transform: rotate(0deg); }
+  0%, 100% { transform: rotate(0deg); }
   50% { transform: rotate(1.2deg); }
-  100% { transform: rotate(0deg); }
 }
 
 @keyframes leafFloat {
-  0% { transform: translateY(0px) rotate(0deg); opacity: 0.6; }
-  50% { transform: translateY(-6px) rotate(4deg); opacity: 0.85; }
-  100% { transform: translateY(0px) rotate(0deg); opacity: 0.6; }
-}
-
-@keyframes pulseEco {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.03); }
-  100% { transform: scale(1); }
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-7px) rotate(4deg); }
 }
 
 .nature-tree-sway {
   transform-origin: bottom center;
-  animation: treeSway 6s ease-in-out infinite;
+  animation: treeSway 7s ease-in-out infinite;
 }
 
 .nature-leaf-float {
@@ -225,47 +219,9 @@ input, select, textarea {
 
 @media (prefers-reduced-motion: reduce) {
   .nature-tree-sway,
-  .nature-leaf-float,
-  .scanner-laser {
+  .nature-leaf-float {
     animation: none !important;
   }
-}
-
-/* Scanner Animation */
-@keyframes scanSweep {
-  0% { top: 8%; opacity: 0.3; }
-  50% { top: 88%; opacity: 0.95; }
-  100% { top: 8%; opacity: 0.3; }
-}
-
-.scanner-laser {
-  position: absolute;
-  left: 6%;
-  right: 6%;
-  height: 2.5px;
-  background: #15803d;
-  box-shadow: 0 0 10px #15803d, 0 0 20px #86efac;
-  animation: scanSweep 2.2s infinite ease-in-out;
-  border-radius: var(--radius-full);
-}
-
-/* Modal Overlay */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(36, 53, 43, 0.45);
-  backdrop-filter: blur(6px);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.98); }
-  to { opacity: 1; transform: scale(1); }
 }
 
 /* Light Map Clean Leaflet Styles */
@@ -317,9 +273,42 @@ input, select, textarea {
   gap: 16px;
 }
 
+/* Responsive Layout Helpers for Map and Schedule */
+.map-responsive-grid {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  min-height: 540px;
+}
+
+.schedule-responsive-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 22px;
+}
+
+/* Mobile Bottom Navigation: HIDE on desktop, SHOW on mobile */
+.mobile-bottom-nav {
+  display: none;
+}
+
 @media (max-width: 960px) {
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
   .grid-3 { grid-template-columns: 1fr; }
+  .map-responsive-grid {
+    grid-template-columns: 1fr;
+  }
+  .schedule-responsive-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .mobile-bottom-nav {
+    display: flex;
+  }
+  main {
+    padding-bottom: 90px !important;
+  }
 }
 
 @media (max-width: 640px) {

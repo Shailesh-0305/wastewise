@@ -71,9 +71,6 @@ export const createReport = async (req, res) => {
       lng: Number(lng) || -73.8648
     };
 
-    const ecoPointsEarned = aiClassification.ecoPointsEarned || (matchedCategory === 'Plastic' ? 25 : matchedCategory === 'Electronic' ? 50 : 20);
-    const estimatedCO2Grams = aiClassification.estimatedCO2Grams || (matchedCategory === 'Plastic' ? 120 : 250);
-
     const newReportData = {
       trackingId,
       citizen: {
@@ -93,10 +90,10 @@ export const createReport = async (req, res) => {
       },
       imageUrl,
       aiClassification: {
-        detectedCategory: aiClassification.detectedCategory || matchedCategory,
-        confidence: aiClassification.confidence || 0.95,
-        estimatedCO2Grams,
-        ecoPointsEarned
+        detectedCategory: '',
+        confidence: 0,
+        estimatedCO2Grams: 0,
+        ecoPointsEarned: 0
       },
       preferredSlot: {
         date: new Date(Date.now() + 86400000),
@@ -105,16 +102,13 @@ export const createReport = async (req, res) => {
       },
       status: 'Reported',
       assignedDriver: {
-        name: 'Travis Jordan',
-        phone: '+1 (587) 254-2365',
-        driverIdCode: 'DRV-587-254-2365',
-        vehiclePlate: 'NY-EV-7821',
-        currentLocation: {
-          lat: coordinates.lat + 0.008,
-          lng: coordinates.lng - 0.005
-        },
-        distanceKm: 3.4,
-        etaMinutes: 8
+        name: 'Awaiting Driver Assignment',
+        phone: '',
+        driverIdCode: '',
+        vehiclePlate: '',
+        currentLocation: coordinates,
+        distanceKm: 0,
+        etaMinutes: 0
       },
       notes,
       timeline: [

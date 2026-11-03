@@ -7,16 +7,19 @@ import {
   Plus, 
   Leaf,
   Truck,
-  MapPin
+  MapPin,
+  RotateCw,
+  AlertCircle
 } from 'lucide-react';
 import { ForestSilhouettes, FloatingLeaf } from './NatureDecorations';
 import { api } from '../services/api';
 
 export default function CollectionScheduleView({ onRequestPickup }) {
-  const [currentDate, setCurrentDate] = useState(() => new Date(2026, 10, 3)); // Nov 3, 2026 (target semester date)
-  const [selectedDay, setSelectedDay] = useState(3);
+  const [currentDate, setCurrentDate] = useState(() => new Date());
+  const [selectedDay, setSelectedDay] = useState(() => new Date().getDate());
   const [schedules, setSchedules] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -26,23 +29,27 @@ export default function CollectionScheduleView({ onRequestPickup }) {
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
-  useEffect(() => {
-    fetchSchedules();
-  }, [year, month]);
-
   const fetchSchedules = async () => {
     try {
       setLoading(true);
-      const res = await api.getSchedules();
+      setError('');
+      // Optional month/year filtering parameter
+      const res = await api.getSchedules({ month: month + 1, year });
       if (res.success && Array.isArray(res.schedules)) {
         setSchedules(res.schedules);
+      } else {
+        setError(res.message || 'Failed to load schedules from server.');
       }
     } catch (e) {
-      console.warn('Could not load schedules:', e);
+      setError(e.message || 'Could not connect to schedule service.');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchSchedules();
+  }, [year, month]);
 
   const handlePrevMonth = () => {
     setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
@@ -60,7 +67,7 @@ export default function CollectionScheduleView({ onRequestPickup }) {
   const daysArray = Array.from({ length: daysInCurrentMonth }, (_, i) => i + 1);
   const blankDays = Array.from({ length: firstDayOfWeek }, (_, i) => i);
 
-  // Match schedules for a given day in the current viewed month
+  // Match real schedules for a given day in the viewed month
   const getSchedulesForDay = (day) => {
     return schedules.filter(s => {
       if (!s.date) return false;
@@ -69,24 +76,18 @@ export default function CollectionScheduleView({ onRequestPickup }) {
     });
   };
 
-  // Get distinct categories scheduled for a day (for dot indicators)
+  // Extract distinct categories only from real schedules for that day
   const getDayCategories = (day) => {
     const dayScheds = getSchedulesForDay(day);
     const cats = new Set();
     dayScheds.forEach(s => {
       (s.categories || []).forEach(c => cats.add(c.toLowerCase()));
     });
-    // If no explicit DB schedules, fallback to regular weekly district rota
-    if (cats.size === 0) {
-      const dayOfWeek = new Date(year, month, day).getDay();
-      if (dayOfWeek === 2) { cats.add('organic'); cats.add('general'); } // Tue
-      if (dayOfWeek === 4) { cats.add('plastic'); cats.add('recyclable'); } // Thu
-      if (dayOfWeek === 6) { cats.add('electronic'); cats.add('metal'); } // Sat
-    }
     return Array.from(cats);
   };
 
   const selectedDaySchedules = getSchedulesForDay(selectedDay);
+
   const isToday = (day) => {
     const today = new Date();
     return today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
@@ -97,7 +98,7 @@ export default function CollectionScheduleView({ onRequestPickup }) {
       case 'organic': return '#16a34a';
       case 'plastic': return '#0284c7';
       case 'electronic': return '#ca8a04';
-      case 'medical': return '#e11d48';
+      case 'medical': return '#be123c';
       case 'recyclable':
       case 'recycling': return '#059669';
       case 'metal': return '#475569';
@@ -138,13 +139,13 @@ export default function CollectionScheduleView({ onRequestPickup }) {
             marginBottom: 8
           }}>
             <CalendarIcon size={14} color="var(--secondary-green)" />
-            <span>District 4 · Municipal Operations</span>
+            <span>Municipal Collection Rounds</span>
           </div>
           <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--primary-text)', letterSpacing: '-0.3px' }}>
             Collection Schedule
           </h2>
           <p style={{ color: 'var(--secondary-text)', fontSize: '0.86rem', marginTop: 2 }}>
-            Track curbside collection calendar rounds and municipal segregation routes.
+            Track scheduled curbside collection rounds and municipal segregation drives.
           </p>
         </div>
 
@@ -157,7 +158,8 @@ export default function CollectionScheduleView({ onRequestPickup }) {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 22 }}>
+      {/* Main Responsive Grid Layout */}
+      <div className="schedule-responsive-grid">
         {/* Monthly Calendar View */}
         <div className="card">
           {/* Calendar Month Header & Navigation */}
@@ -167,7 +169,7 @@ export default function CollectionScheduleView({ onRequestPickup }) {
                 {monthNames[month]} {year}
               </h3>
               <p style={{ fontSize: '0.76rem', color: 'var(--secondary-text)' }}>
-                Click any date to inspect scheduled rounds
+                Select a date to view scheduled pickups
               </p>
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
@@ -280,7 +282,25 @@ export default function CollectionScheduleView({ onRequestPickup }) {
               </h4>
             </div>
 
-            {selectedDaySchedules.length > 0 ? (
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--secondary-text)' }}>
+                <RotateCw size={22} className="animate-spin" style={{ margin: '0 auto 8px', color: 'var(--secondary-green)' }} />
+                <p style={{ fontSize: '0.82rem' }}>Loading schedules...</p>
+              </div>
+            ) : error ? (
+              <div style={{ textAlign: 'center', padding: '20px 10px', background: '#fef2f2', borderRadius: 12, border: '1px solid #fecaca' }}>
+                <AlertCircle size={22} color="#dc2626" style={{ margin: '0 auto 6px' }} />
+                <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#991b1b' }}>Failed to load schedule</p>
+                <p style={{ fontSize: '0.74rem', color: '#7f1d1d', marginTop: 2 }}>{error}</p>
+                <button
+                  onClick={fetchSchedules}
+                  className="btn-secondary"
+                  style={{ marginTop: 10, padding: '5px 12px', fontSize: '0.76rem' }}
+                >
+                  Retry
+                </button>
+              </div>
+            ) : selectedDaySchedules.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {selectedDaySchedules.map((s, idx) => (
                   <div 
@@ -293,19 +313,21 @@ export default function CollectionScheduleView({ onRequestPickup }) {
                     }}
                   >
                     <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--secondary-green)', textTransform: 'uppercase' }}>
-                      {s.timeWindow || '07:00 AM - 09:00 AM'} · {s.status || 'Scheduled'}
+                      {s.timeWindow || 'Scheduled Round'} · {s.status || 'Upcoming'}
                     </div>
                     <div style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--primary-forest)', marginTop: 2 }}>
                       {s.title}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.74rem', color: 'var(--secondary-text)', marginTop: 4 }}>
-                      <MapPin size={12} />
-                      <span>{s.zone || 'District 4 - Metro North'}</span>
-                    </div>
+                    {s.zone && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.74rem', color: 'var(--secondary-text)', marginTop: 4 }}>
+                        <MapPin size={12} />
+                        <span>{s.zone}</span>
+                      </div>
+                    )}
                     {s.driverName && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.74rem', color: 'var(--secondary-text)', marginTop: 2 }}>
                         <Truck size={12} />
-                        <span>Driver: {s.driverName} ({s.vehicleId || 'EV Fleet'})</span>
+                        <span>Driver: {s.driverName} {s.vehicleId ? `(${s.vehicleId})` : ''}</span>
                       </div>
                     )}
                     {s.notes && (
@@ -324,68 +346,41 @@ export default function CollectionScheduleView({ onRequestPickup }) {
                   </div>
                 ))}
               </div>
-            ) : getDayCategories(selectedDay).length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div style={{
-                  background: 'var(--pale-green-section)',
-                  border: '1px solid var(--soft-leaf-green)',
-                  borderRadius: 14,
-                  padding: '12px'
-                }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--secondary-green)', textTransform: 'uppercase' }}>
-                    07:00 AM - 09:00 AM · Weekly Rota
-                  </div>
-                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--primary-forest)', marginTop: 2 }}>
-                    District 4 Scheduled Round
-                  </div>
-                  <div style={{ fontSize: '0.76rem', color: 'var(--secondary-text)', marginTop: 4 }}>
-                    Standard curbside collection round. Place designated waste containers out before 06:45 AM.
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {getDayCategories(selectedDay).map(t => (
-                    <span key={t} className={`badge badge-${t.toLowerCase()}`}>
-                      {t}
-                    </span>
-                  ))}
-                </div>
-              </div>
             ) : (
-              <div style={{ textAlign: 'center', padding: '20px 10px', color: 'var(--secondary-text)', fontSize: '0.84rem' }}>
+              <div style={{ textAlign: 'center', padding: '24px 10px', color: 'var(--secondary-text)', fontSize: '0.84rem' }}>
                 <Leaf size={24} color="var(--soft-leaf-green)" style={{ margin: '0 auto 8px' }} />
-                <p>No municipal rounds scheduled on this date.</p>
+                <p style={{ fontWeight: 700, color: 'var(--primary-text)' }}>No scheduled round on this date</p>
                 <p style={{ fontSize: '0.76rem', marginTop: 4 }}>
-                  You can request an on-demand direct pickup below.
+                  You can schedule an on-demand curbside pickup below.
                 </p>
                 <button
                   onClick={onRequestPickup}
                   className="btn-primary"
-                  style={{ marginTop: 12, padding: '7px 16px', fontSize: '0.8rem' }}
+                  style={{ marginTop: 14, padding: '8px 18px', fontSize: '0.82rem' }}
                 >
-                  Book On-Demand
+                  Request Pickup
                 </button>
               </div>
             )}
           </div>
 
-          {/* District Information */}
+          {/* Curbside Guidelines */}
           <div className="card" style={{ padding: '20px' }}>
             <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--primary-text)', marginBottom: 8 }}>
-              Curbside Collection Rules
+              Curbside Collection Guidelines
             </h4>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.78rem', color: 'var(--secondary-text)' }}>
               <li style={{ display: 'flex', gap: 6 }}>
                 <span style={{ color: 'var(--secondary-green)' }}>✓</span>
-                <span>Place segregated bins outside by 06:45 AM.</span>
+                <span>Place segregated bins at curbside by 06:45 AM on designated round days.</span>
               </li>
               <li style={{ display: 'flex', gap: 6 }}>
                 <span style={{ color: 'var(--secondary-green)' }}>✓</span>
-                <span>Rinse food residue from plastic containers and tins.</span>
+                <span>Rinse containers and bottles to avoid processing contamination.</span>
               </li>
               <li style={{ display: 'flex', gap: 6 }}>
                 <span style={{ color: 'var(--secondary-green)' }}>✓</span>
-                <span>Keep e-waste and batteries in sealed clear pouches.</span>
+                <span>Separate e-waste and batteries from general household recyclables.</span>
               </li>
             </ul>
           </div>

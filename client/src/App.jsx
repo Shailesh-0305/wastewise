@@ -5,23 +5,20 @@ import RecyclingCentresMap from './components/RecyclingCentresMap';
 import CollectionScheduleView from './components/CollectionScheduleView';
 import WasteCatalogView from './components/WasteCatalogView';
 import AdminDashboard from './components/AdminDashboard';
-import WasteScannerModal from './components/WasteScannerModal';
 import PickupRequestModal from './components/PickupRequestModal';
 import AuthModal from './components/AuthModal';
 import { api } from './services/api';
-import { Home, MapPin, Sparkles, BarChart3, BookOpen, ShieldAlert, LogIn } from 'lucide-react';
+import { Home, MapPin, Calendar, BarChart3, BookOpen, ShieldAlert, LogIn } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [currentUser, setCurrentUser] = useState(null);
   const [reports, setReports] = useState([]);
   const [userPoints, setUserPoints] = useState(0);
-  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isPickupOpen, setIsPickupOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authTab, setAuthTab] = useState('login');
-  const [classificationPreFill, setClassificationPreFill] = useState(null);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [catalogSearchQuery, setCatalogSearchQuery] = useState('');
 
   const fetchReports = useCallback(async () => {
     try {
@@ -32,18 +29,16 @@ export default function App() {
         setReports([]);
       }
     } catch (e) {
-      console.warn('Initial data load warning:', e);
+      console.warn('Reports load warning:', e);
       setReports([]);
     }
   }, []);
 
   const checkCurrentUser = useCallback(async () => {
-    setIsCheckingAuth(true);
     const token = localStorage.getItem('token');
     if (!token) {
       setCurrentUser(null);
       setUserPoints(0);
-      setIsCheckingAuth(false);
       return;
     }
 
@@ -54,7 +49,6 @@ export default function App() {
         setUserPoints(res.user.ecoPoints || 0);
         fetchReports();
       } else {
-        // Token invalid or expired
         api.logout();
         setCurrentUser(null);
         setUserPoints(0);
@@ -63,8 +57,6 @@ export default function App() {
       api.logout();
       setCurrentUser(null);
       setUserPoints(0);
-    } finally {
-      setIsCheckingAuth(false);
     }
   }, [fetchReports]);
 
@@ -79,23 +71,13 @@ export default function App() {
       setIsAuthOpen(true);
       return;
     }
-    setClassificationPreFill(null);
-    setIsPickupOpen(true);
-  };
-
-  const handleClassificationSelected = (item) => {
-    setClassificationPreFill(item);
-    if (!currentUser) {
-      setAuthTab('login');
-      setIsAuthOpen(true);
-      return;
-    }
     setIsPickupOpen(true);
   };
 
   const handleReportCreated = (newReport) => {
     setReports(prev => [newReport, ...prev]);
-    setUserPoints(prev => prev + (newReport.aiClassification?.ecoPointsEarned || 25));
+    // Refresh user's actual profile points from the backend
+    checkCurrentUser();
     setActiveTab('home');
   };
 
@@ -118,6 +100,11 @@ export default function App() {
     setActiveTab('home');
   };
 
+  const handleNavigateCatalog = (query = '') => {
+    setCatalogSearchQuery(query);
+    setActiveTab('catalog');
+  };
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--main-background)' }}>
       {/* Top Main Navigation */}
@@ -126,7 +113,6 @@ export default function App() {
         setActiveTab={setActiveTab}
         currentUser={currentUser}
         onOpenPickup={handleOpenPickup}
-        onOpenScanner={() => setIsScannerOpen(true)}
         onOpenAuth={(tab) => { setAuthTab(tab); setIsAuthOpen(true); }}
         onLogout={handleLogout}
         userPoints={userPoints}
@@ -137,10 +123,10 @@ export default function App() {
         {activeTab === 'home' && (
           <CitizenHome
             onOpenPickup={handleOpenPickup}
-            onOpenScanner={() => setIsScannerOpen(true)}
             onNavigateCentres={() => setActiveTab('centres')}
             onNavigateSchedule={() => setActiveTab('schedule')}
-            onNavigateCatalog={() => setActiveTab('catalog')}
+            onNavigateCatalog={handleNavigateCatalog}
+            onOpenAuth={(tab) => { setAuthTab(tab); setIsAuthOpen(true); }}
             reports={reports}
             userPoints={userPoints}
             currentUser={currentUser}
@@ -159,8 +145,8 @@ export default function App() {
 
         {activeTab === 'catalog' && (
           <WasteCatalogView
-            onOpenScanner={() => setIsScannerOpen(true)}
             onRequestPickup={handleOpenPickup}
+            initialSearchQuery={catalogSearchQuery}
           />
         )}
 
@@ -221,84 +207,66 @@ export default function App() {
         )}
       </main>
 
-      {/* Floating Mobile Bottom Navigation */}
-      <div style={{
-        position: 'fixed',
-        bottom: 16,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        background: 'rgba(255, 255, 255, 0.94)',
-        backdropFilter: 'blur(16px)',
-        border: '1.5px solid var(--border-light)',
-        borderRadius: 999,
-        padding: '8px 22px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 20,
-        boxShadow: '0 8px 32px rgba(22, 101, 52, 0.12)',
-        zIndex: 90
-      }}>
+      {/* Floating Mobile Bottom Navigation (Shown only on small screens via CSS .mobile-bottom-nav) */}
+      <nav 
+        className="mobile-bottom-nav"
+        aria-label="Mobile Navigation"
+        style={{
+          position: 'fixed',
+          bottom: 16,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(16px)',
+          border: '1.5px solid var(--border-light)',
+          borderRadius: 999,
+          padding: '8px 18px',
+          alignItems: 'center',
+          gap: 16,
+          boxShadow: '0 8px 32px rgba(22, 101, 52, 0.12)',
+          zIndex: 90
+        }}
+      >
         {[
           { id: 'home', label: 'Home', icon: Home },
           { id: 'catalog', label: 'Guide', icon: BookOpen },
-          { id: 'scanner', label: 'AI Scan', icon: Sparkles, isSpecial: true },
-          { id: 'centres', label: 'Map', icon: MapPin },
+          { id: 'schedule', label: 'Schedule', icon: Calendar },
+          { id: 'centres', label: 'Centres', icon: MapPin },
           ...(currentUser?.role === 'admin' ? [{ id: 'admin', label: 'Admin', icon: BarChart3 }] : [])
         ].map(btn => {
           const Icon = btn.icon;
           const isActive = activeTab === btn.id;
 
-          if (btn.isSpecial) {
-            return (
-              <button
-                key={btn.id}
-                onClick={() => setIsScannerOpen(true)}
-                style={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: '50%',
-                  background: 'var(--primary-forest)',
-                  color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginTop: -16,
-                  boxShadow: '0 6px 16px rgba(22,101,52,0.3)',
-                  transition: 'all 0.2s',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
-                title="Scan Waste with AI"
-              >
-                <Sparkles size={20} />
-              </button>
-            );
-          }
-
           return (
             <button
               key={btn.id}
-              onClick={() => setActiveTab(btn.id)}
+              onClick={() => {
+                if (btn.id === 'catalog') {
+                  setCatalogSearchQuery('');
+                }
+                setActiveTab(btn.id);
+              }}
               style={{
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 gap: 2,
                 color: isActive ? 'var(--primary-forest)' : 'var(--secondary-text)',
-                transition: 'all 0.2s',
+                transition: 'all 0.15s',
                 background: 'transparent',
                 border: 'none',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                padding: '4px 6px'
               }}
             >
-              <Icon size={19} strokeWidth={isActive ? 2.5 : 2} />
+              <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
               <span style={{ fontSize: '0.66rem', fontWeight: isActive ? 800 : 500 }}>
                 {btn.label}
               </span>
             </button>
           );
         })}
-      </div>
+      </nav>
 
       {/* Authentication Modal */}
       <AuthModal
@@ -308,19 +276,12 @@ export default function App() {
         defaultTab={authTab}
       />
 
-      {/* AI Waste-Image Classifier Modal */}
-      <WasteScannerModal
-        isOpen={isScannerOpen}
-        onClose={() => setIsScannerOpen(false)}
-        onSelectClassification={handleClassificationSelected}
-      />
-
       {/* Pickup Request Modal */}
       <PickupRequestModal
         isOpen={isPickupOpen}
         onClose={() => setIsPickupOpen(false)}
-        initialData={classificationPreFill}
         onReportCreated={handleReportCreated}
+        currentUser={currentUser}
       />
     </div>
   );

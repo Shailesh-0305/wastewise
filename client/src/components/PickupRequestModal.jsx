@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, 
-  MapPin, 
   Navigation,
-  AlertCircle
+  AlertCircle,
+  Send
 } from 'lucide-react';
 import { api } from '../services/api';
 import confetti from 'canvas-confetti';
@@ -18,44 +18,94 @@ const CATEGORIES = [
   { id: 'Metal', label: 'Metal', color: '#475569', icon: '🥫' }
 ];
 
-export default function PickupRequestModal({ isOpen, onClose, initialData = null, onReportCreated }) {
-  const [category, setCategory] = useState(initialData?.category || 'Plastic');
-  const [subCategory, setSubCategory] = useState(initialData?.subCategory || '');
-  const [packageSize, setPackageSize] = useState('Medium');
-  const [quantity, setQuantity] = useState(2);
+export default function PickupRequestModal({ isOpen, onClose, onReportCreated, currentUser }) {
+  const [category, setCategory] = useState('Plastic');
+  const [subCategory, setSubCategory] = useState('');
+  const [quantity, setQuantity] = useState(1);
   const [unit, setUnit] = useState('bags');
-  const [pickupDay, setPickupDay] = useState('Tomorrow (Thu)');
+  
+  // Dynamic Dates for next 7 days
+  const [dateOptions, setDateOptions] = useState([]);
+  const [selectedDateVal, setSelectedDateVal] = useState('');
   const [pickupTime, setPickupTime] = useState('07:00 AM - 09:00 AM');
-  const [address, setAddress] = useState('Jl. Siliwangi No. 12, Buffalo, NY');
-  const [landmark, setLandmark] = useState('Near Green Park Gate No. 2');
-  const [lat, setLat] = useState(40.8448);
-  const [lng, setLng] = useState(-73.8648);
+  
+  const [address, setAddress] = useState('');
+  const [landmark, setLandmark] = useState('');
+  const [lat, setLat] = useState(null);
+  const [lng, setLng] = useState(null);
+  const [geoNotice, setGeoNotice] = useState('');
+  const [isLocating, setIsLocating] = useState(false);
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  // Generate dynamic date options on mount
   useEffect(() => {
-    if (initialData) {
-      if (initialData.category) setCategory(initialData.category);
-      if (initialData.subCategory) setSubCategory(initialData.subCategory);
+    const days = [];
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    for (let i = 1; i <= 7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      const dayName = dayNames[d.getDay()];
+      const mName = monthNames[d.getMonth()];
+      const dateNum = d.getDate();
+      const label = i === 1 ? `Tomorrow (${dayName}, ${mName} ${dateNum})` : `${dayName}, ${mName} ${dateNum}`;
+      days.push({
+        label,
+        value: d.toISOString().split('T')[0],
+        dayName: label
+      });
     }
-  }, [initialData]);
+    setDateOptions(days);
+    if (days.length > 0) {
+      setSelectedDateVal(days[0].value);
+    }
+  }, []);
+
+  // Autofill user profile address if available
+  useEffect(() => {
+    if (currentUser?.address) {
+      const parts = [];
+      if (currentUser.address.street) parts.push(currentUser.address.street);
+      if (currentUser.address.city) parts.push(currentUser.address.city);
+      if (currentUser.address.state) parts.push(currentUser.address.state);
+      if (parts.length > 0) {
+        setAddress(parts.join(', '));
+      }
+    }
+  }, [currentUser]);
+
+  if (!isOpen) return null;
 
   const handleUseCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setLat(Number(pos.coords.latitude.toFixed(4)));
-          setLng(Number(pos.coords.longitude.toFixed(4)));
-          setAddress(`Current GPS Pin (${pos.coords.latitude.toFixed(3)}, ${pos.coords.longitude.toFixed(3)})`);
-        },
-        () => {
-          // Default Buffalo coords if permission denied
-          setLat(40.8448);
-          setLng(-73.8648);
-        }
-      );
+    if (!navigator.geolocation) {
+      setGeoNotice('Geolocation is not supported by your browser.');
+      return;
     }
+    setIsLocating(true);
+    setGeoNotice('');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const latitude = Number(pos.coords.latitude.toFixed(5));
+        const longitude = Number(pos.coords.longitude.toFixed(5));
+        setLat(latitude);
+        setLng(longitude);
+        setGeoNotice(`GPS Coordinates attached: (${latitude}, ${longitude})`);
+        setIsLocating(false);
+      },
+      (err) => {
+        setIsLocating(false);
+        // Do NOT insert fallback coordinates when denied
+        if (err.code === err.PERMISSION_DENIED) {
+          setGeoNotice('Location access denied. Please type your pickup address manually.');
+        } else {
+          setGeoNotice('Unable to acquire GPS location. Please enter your address manually.');
+        }
+      },
+      { timeout: 8000 }
+    );
   };
 
   const handleSubmit = async (e) => {
@@ -63,372 +113,380 @@ export default function PickupRequestModal({ isOpen, onClose, initialData = null
     setIsSubmitting(true);
     setError('');
 
+    if (!address.trim()) {
+      setError('Please provide a pickup street address.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    const chosenOption = dateOptions.find(d => d.value === selectedDateVal);
+
     try {
       const payload = {
         category,
-        subCategory: subCategory ? `${subCategory} [${packageSize}]` : `${category} (${packageSize} batch)`,
-        quantity: Number(quantity),
+        subCategory: subCategory ? subCategory.trim() : `${category} waste items`,
+        quantity: Number(quantity) || 1,
         unit,
-        address,
-        landmark,
-        lat,
-        lng,
-        imageUrl: initialData?.imageUrl || '',
-        aiClassification: {
-          detectedCategory: category,
-          confidence: 0.96,
-          estimatedCO2Grams: initialData?.co2Grams || (category === 'Plastic' ? 120 : 300),
-          ecoPointsEarned: initialData?.ecoPoints || (category === 'Plastic' ? 25 : 40)
-        },
-        preferredDay: pickupDay,
+        address: address.trim(),
+        landmark: landmark.trim(),
+        lat: lat || 40.8448,
+        lng: lng || -73.8648,
+        preferredDay: chosenOption ? chosenOption.dayName : 'Upcoming',
         preferredSlot: pickupTime,
-        notes
+        notes: notes.trim()
       };
 
       const res = await api.createReport(payload);
       if (res.success) {
-        confetti({
-          particleCount: 50,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
+        try {
+          confetti({
+            particleCount: 50,
+            spread: 70,
+            origin: { y: 0.6 }
+          });
+        } catch {
+          // ignore confetti error if canvas is restricted
+        }
         onReportCreated(res.report);
         onClose();
+      } else {
+        setError(res.message || 'Failed to submit pickup request to server.');
       }
     } catch (err) {
-      setError(err.message || 'Failed to submit pickup request');
+      setError(err.message || 'An unexpected error occurred while scheduling pickup.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="modal-overlay">
-      <div style={{
-        background: '#ffffff',
-        borderRadius: 28,
-        width: '100%',
-        maxWidth: 520,
-        overflow: 'hidden',
-        boxShadow: '0 25px 60px rgba(0, 0, 0, 0.3)',
-        display: 'flex',
-        flexDirection: 'column',
-        maxHeight: '92vh'
-      }}>
-        {/* Header (Matches Image 3 Screen 3) */}
-        <div style={{
-          padding: '18px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderBottom: '1px solid #f1f5f9'
-        }}>
+    <div className="modal-overlay" onClick={onClose}>
+      <div 
+        className="card" 
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: 580,
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          padding: '28px 24px',
+          position: 'relative',
+          borderRadius: 24,
+          boxShadow: '0 20px 48px rgba(22, 101, 52, 0.16)'
+        }}
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1b4332' }}>
-              Pickup and Pack
+            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--primary-forest)' }}>
+              Request Waste Pickup
             </h3>
-            <p style={{ fontSize: '0.78rem', color: '#64748b' }}>
-              Schedule collection with WasteWise eco-couriers
+            <p style={{ fontSize: '0.82rem', color: 'var(--secondary-text)', marginTop: 2 }}>
+              Schedule curbside collection for your segregated waste materials.
             </p>
           </div>
           <button 
             onClick={onClose}
-            style={{
-              width: 32,
-              height: 32,
+            style={{ 
+              color: 'var(--secondary-text)', 
+              padding: 6, 
               borderRadius: '50%',
-              background: '#f1f5f9',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#64748b'
+              background: 'transparent',
+              cursor: 'pointer' 
             }}
           >
-            <X size={18} />
+            <X size={20} />
           </button>
         </div>
 
-        {/* Scrollable Form Body */}
-        <form onSubmit={handleSubmit} style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {error && (
-            <div style={{
-              background: '#fef2f2',
-              border: '1px solid #fecaca',
-              borderRadius: 12,
-              padding: '10px 14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              color: '#b91c1c',
-              fontSize: '0.85rem'
-            }}>
-              <AlertCircle size={16} />
-              <span>{error}</span>
-            </div>
-          )}
+        {error && (
+          <div style={{
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#dc2626',
+            borderRadius: 12,
+            padding: '10px 14px',
+            fontSize: '0.82rem',
+            marginBottom: 16,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8
+          }}>
+            <AlertCircle size={16} style={{ flexShrink: 0 }} />
+            <span>{error}</span>
+          </div>
+        )}
 
-          {/* Waste Category Selection */}
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          {/* Category Selector */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: 8 }}>
-              Select Waste Category:
+            <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: 'var(--secondary-text)', textTransform: 'uppercase', marginBottom: 8 }}>
+              Select Waste Category
             </label>
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-              {CATEGORIES.map(cat => (
-                <button
-                  type="button"
-                  key={cat.id}
-                  onClick={() => setCategory(cat.id)}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: 999,
-                    fontSize: '0.82rem',
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    flexShrink: 0,
-                    border: category === cat.id ? `2px solid ${cat.color}` : '1.5px solid #e2e8f0',
-                    background: category === cat.id ? `${cat.color}15` : '#ffffff',
-                    color: category === cat.id ? cat.color : '#475569',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <span>{cat.icon}</span>
-                  <span>{cat.label}</span>
-                </button>
-              ))}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 8 }}>
+              {CATEGORIES.map(cat => {
+                const isSelected = category === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setCategory(cat.id)}
+                    style={{
+                      padding: '10px 8px',
+                      borderRadius: 14,
+                      border: isSelected ? `2px solid ${cat.color}` : '1.5px solid var(--border-light)',
+                      background: isSelected ? 'var(--pale-green-section)' : '#ffffff',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 4,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <span style={{ fontSize: '1.3rem' }}>{cat.icon}</span>
+                    <span style={{ fontSize: '0.78rem', fontWeight: isSelected ? 800 : 600, color: isSelected ? 'var(--primary-forest)' : 'var(--primary-text)' }}>
+                      {cat.label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Pickup Day & Time (Image 3 fields) */}
-          <div className="grid-2">
+          {/* Subcategory / Description */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: 'var(--secondary-text)', textTransform: 'uppercase', marginBottom: 6 }}>
+              Item Details / Subcategory
+            </label>
+            <input 
+              type="text"
+              placeholder="e.g. Crushed plastic bottles, cardboard boxes, vegetable peelings"
+              value={subCategory}
+              onChange={(e) => setSubCategory(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '9px 14px',
+                borderRadius: 12,
+                border: '1.5px solid var(--border-light)',
+                fontSize: '0.86rem',
+                background: '#ffffff',
+                color: 'var(--primary-text)'
+              }}
+            />
+          </div>
+
+          {/* Quantity & Unit */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: 6 }}>
-                Pickup Day
+              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: 'var(--secondary-text)', textTransform: 'uppercase', marginBottom: 6 }}>
+                Quantity
               </label>
-              <div style={{ position: 'relative' }}>
-                <select
-                  value={pickupDay}
-                  onChange={(e) => setPickupDay(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: 12,
-                    border: '1.5px solid #cbd5e1',
-                    background: '#f8fafc',
-                    fontSize: '0.88rem',
-                    fontWeight: 600,
-                    color: '#1e293b'
-                  }}
-                >
-                  <option value="Today">Today (Urgent)</option>
-                  <option value="Tomorrow (Thu)">Tomorrow (Thursday)</option>
-                  <option value="Friday">Friday</option>
-                  <option value="Saturday">Saturday</option>
-                  <option value="Monday">Next Monday</option>
-                </select>
-              </div>
+              <input 
+                type="number"
+                min="1"
+                max="100"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 14px',
+                  borderRadius: 12,
+                  border: '1.5px solid var(--border-light)',
+                  fontSize: '0.86rem',
+                  background: '#ffffff',
+                  color: 'var(--primary-text)'
+                }}
+              />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: 6 }}>
-                Pickup Time
+              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: 'var(--secondary-text)', textTransform: 'uppercase', marginBottom: 6 }}>
+                Unit
+              </label>
+              <select
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 14px',
+                  borderRadius: 12,
+                  border: '1.5px solid var(--border-light)',
+                  fontSize: '0.86rem',
+                  background: '#ffffff',
+                  color: 'var(--primary-text)'
+                }}
+              >
+                <option value="bags">bags (standard)</option>
+                <option value="kg">kg (weight)</option>
+                <option value="items">items (units)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Preferred Date & Time Window */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: 'var(--secondary-text)', textTransform: 'uppercase', marginBottom: 6 }}>
+                Preferred Date
+              </label>
+              <select
+                value={selectedDateVal}
+                onChange={(e) => setSelectedDateVal(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 12,
+                  border: '1.5px solid var(--border-light)',
+                  fontSize: '0.84rem',
+                  background: '#ffffff',
+                  color: 'var(--primary-text)'
+                }}
+              >
+                {dateOptions.map(opt => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: 'var(--secondary-text)', textTransform: 'uppercase', marginBottom: 6 }}>
+                Time Window
               </label>
               <select
                 value={pickupTime}
                 onChange={(e) => setPickupTime(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '10px 14px',
+                  padding: '9px 12px',
                   borderRadius: 12,
-                  border: '1.5px solid #cbd5e1',
-                  background: '#f8fafc',
-                  fontSize: '0.88rem',
-                  fontWeight: 600,
-                  color: '#1e293b'
+                  border: '1.5px solid var(--border-light)',
+                  fontSize: '0.84rem',
+                  background: '#ffffff',
+                  color: 'var(--primary-text)'
                 }}
               >
-                <option value="07:00 AM - 09:00 AM">07:00 AM - 09:00 AM</option>
-                <option value="10:00 AM - 12:00 PM">10:00 AM - 12:00 PM</option>
-                <option value="02:00 PM - 05:00 PM">02:00 PM - 05:00 PM</option>
+                <option value="07:00 AM - 09:00 AM">07:00 AM - 09:00 AM (Morning)</option>
+                <option value="09:00 AM - 12:00 PM">09:00 AM - 12:00 PM (Midday)</option>
+                <option value="02:00 PM - 05:00 PM">02:00 PM - 05:00 PM (Afternoon)</option>
               </select>
             </div>
           </div>
 
-          {/* Package Size & Quantity (Image 3 & 4) */}
-          <div className="grid-2">
-            <div>
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: 6 }}>
-                Package Size
-              </label>
-              <select
-                value={packageSize}
-                onChange={(e) => setPackageSize(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  borderRadius: 12,
-                  border: '1.5px solid #cbd5e1',
-                  background: '#f8fafc',
-                  fontSize: '0.88rem',
-                  fontWeight: 600,
-                  color: '#1e293b'
-                }}
-              >
-                <option value="Small">Small (Max 2 kg)</option>
-                <option value="Medium">Medium (3 - 8 kg)</option>
-                <option value="Large">Large (8+ kg / Bulk)</option>
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: 6 }}>
-                Quantity
-              </label>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <input
-                  type="number"
-                  min="1"
-                  max="50"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  style={{
-                    width: '65%',
-                    padding: '10px 14px',
-                    borderRadius: 12,
-                    border: '1.5px solid #cbd5e1',
-                    background: '#f8fafc',
-                    fontSize: '0.88rem',
-                    fontWeight: 600,
-                    color: '#1e293b'
-                  }}
-                />
-                <select
-                  value={unit}
-                  onChange={(e) => setUnit(e.target.value)}
-                  style={{
-                    width: '35%',
-                    padding: '10px',
-                    borderRadius: 12,
-                    border: '1.5px solid #cbd5e1',
-                    background: '#f8fafc',
-                    fontSize: '0.88rem',
-                    fontWeight: 600
-                  }}
-                >
-                  <option value="bags">bags</option>
-                  <option value="kg">kg</option>
-                  <option value="items">items</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Pickup Location with Address & GPS (Image 3) */}
+          {/* Pickup Address & Geolocation */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>
-                Pickup Location
+              <label style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--secondary-text)', textTransform: 'uppercase' }}>
+                Pickup Address *
               </label>
               <button
                 type="button"
                 onClick={handleUseCurrentLocation}
+                disabled={isLocating}
                 style={{
-                  fontSize: '0.75rem',
-                  color: '#15803d',
-                  fontWeight: 600,
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  color: 'var(--primary-forest)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 4
                 }}
               >
-                <Navigation size={12} /> Use GPS Location
+                <Navigation size={12} color="var(--secondary-green)" />
+                <span>{isLocating ? 'Locating...' : 'Attach GPS Pin'}</span>
               </button>
             </div>
-            
-            <div style={{
-              background: '#f8fafc',
-              border: '1.5px solid #cbd5e1',
-              borderRadius: 14,
-              padding: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              marginBottom: 8
-            }}>
-              <MapPin size={20} color="#15803d" style={{ flexShrink: 0 }} />
-              <input
-                type="text"
-                required
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Street address or location..."
-                style={{
-                  width: '100%',
-                  border: 'none',
-                  background: 'transparent',
-                  fontSize: '0.88rem',
-                  fontWeight: 600,
-                  color: '#1e293b'
-                }}
-              />
-            </div>
 
-            <input
+            <input 
               type="text"
+              required
+              placeholder="Enter your street address, building or house number"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '9px 14px',
+                borderRadius: 12,
+                border: '1.5px solid var(--border-light)',
+                fontSize: '0.86rem',
+                background: '#ffffff',
+                color: 'var(--primary-text)'
+              }}
+            />
+
+            {geoNotice && (
+              <p style={{ fontSize: '0.74rem', color: lat ? 'var(--secondary-green)' : '#b45309', marginTop: 4 }}>
+                {geoNotice}
+              </p>
+            )}
+          </div>
+
+          {/* Landmark */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: 'var(--secondary-text)', textTransform: 'uppercase', marginBottom: 6 }}>
+              Nearby Landmark (Optional)
+            </label>
+            <input 
+              type="text"
+              placeholder="e.g. Opposite the community park, green front gate"
               value={landmark}
               onChange={(e) => setLandmark(e.target.value)}
-              placeholder="Location Detail (optional landmark / gate / floor)..."
               style={{
                 width: '100%',
-                padding: '10px 14px',
+                padding: '9px 14px',
                 borderRadius: 12,
-                border: '1.5px solid #e2e8f0',
+                border: '1.5px solid var(--border-light)',
+                fontSize: '0.86rem',
                 background: '#ffffff',
-                fontSize: '0.82rem'
+                color: 'var(--primary-text)'
               }}
             />
           </div>
 
-          {/* Notes / Special Instructions */}
+          {/* Notes */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: 6 }}>
-              Special Notes (Optional)
+            <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: 'var(--secondary-text)', textTransform: 'uppercase', marginBottom: 6 }}>
+              Instructions for Driver (Optional)
             </label>
-            <input
-              type="text"
+            <textarea 
+              rows="2"
+              placeholder="Special instructions for access, bin location, packaging..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g. Cleaned & crushed cans, left near front porch"
               style={{
                 width: '100%',
-                padding: '10px 14px',
+                padding: '9px 14px',
                 borderRadius: 12,
-                border: '1.5px solid #e2e8f0',
+                border: '1.5px solid var(--border-light)',
+                fontSize: '0.86rem',
                 background: '#ffffff',
-                fontSize: '0.82rem'
+                color: 'var(--primary-text)'
               }}
             />
           </div>
 
-          {/* Confirm Button (Image 3 green CTA button) */}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="btn-primary"
-            style={{
-              width: '100%',
-              padding: '15px',
-              fontSize: '1rem',
-              fontWeight: 800,
-              letterSpacing: '0.5px',
-              marginTop: 10
-            }}
-          >
-            {isSubmitting ? 'Scheduling Pickup...' : 'CONFIRM PICKUP'}
-          </button>
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-secondary"
+              style={{ flex: 1, padding: '10px' }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="btn-primary"
+              style={{ flex: 2, padding: '10px' }}
+            >
+              <Send size={15} />
+              <span>{isSubmitting ? 'Scheduling...' : 'Submit Pickup Request'}</span>
+            </button>
+          </div>
         </form>
       </div>
     </div>

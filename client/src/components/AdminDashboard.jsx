@@ -11,7 +11,8 @@ import {
   RotateCw,
   Edit3,
   X,
-  Save
+  Save,
+  AlertCircle
 } from 'lucide-react';
 import { api } from '../services/api';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
@@ -57,6 +58,7 @@ export default function AdminDashboard({ onRefreshNeeded }) {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [loading, setLoading] = useState(true);
   const [optimizing, setOptimizing] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState('');
 
   // Edit Report Modal State (Full CRUD Edit)
   const [editingReport, setEditingReport] = useState(null);
@@ -73,6 +75,7 @@ export default function AdminDashboard({ onRefreshNeeded }) {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
+      setAnalyticsError('');
       const params = {};
       if (statusFilter !== 'All') params.status = statusFilter;
       if (categoryFilter !== 'All') params.category = categoryFilter;
@@ -87,9 +90,12 @@ export default function AdminDashboard({ onRefreshNeeded }) {
       }
       if (analyticsRes.success && analyticsRes.stats) {
         setAnalytics(analyticsRes.stats);
+      } else {
+        setAnalyticsError(analyticsRes.message || 'Analytics currently unavailable.');
       }
     } catch (e) {
       console.error('Failed to load admin data:', e);
+      setAnalyticsError(e.message || 'Error loading dashboard records.');
     } finally {
       setLoading(false);
     }
@@ -101,7 +107,7 @@ export default function AdminDashboard({ onRefreshNeeded }) {
 
   const handleStatusChange = async (reportId, newStatus) => {
     try {
-      const res = await api.updateReportStatus(reportId, newStatus, `Municipal supervisor set status to ${newStatus}`);
+      const res = await api.updateReportStatus(reportId, newStatus, `Municipal supervisor updated status to ${newStatus}`);
       if (res.success) {
         loadData();
         if (onRefreshNeeded) onRefreshNeeded();
@@ -170,7 +176,7 @@ export default function AdminDashboard({ onRefreshNeeded }) {
       if (res.success) {
         setOptimizedRoute(res);
       } else {
-        alert(res.message || 'Failed to optimize route');
+        alert(res.message || 'Failed to compute route optimization.');
       }
     } catch (e) {
       alert(e.message);
@@ -188,6 +194,7 @@ export default function AdminDashboard({ onRefreshNeeded }) {
   });
 
   // Chart 1: Category Distribution Doughnut
+  const hasCategoryData = analytics?.categoryDistribution && analytics.categoryDistribution.some(c => (c.weightKg || c.count) > 0);
   const categoryLabels = analytics?.categoryDistribution?.map(c => c.category) || CANONICAL_CATEGORIES;
   const categoryCounts = analytics?.categoryDistribution?.map(c => c.weightKg || c.count) || [0, 0, 0, 0, 0, 0, 0];
   const doughnutData = {
@@ -211,9 +218,10 @@ export default function AdminDashboard({ onRefreshNeeded }) {
   };
 
   // Chart 2: Monthly Trends Bar Chart
-  const monthlyLabels = analytics?.monthlyTrends?.map(m => m.month) || ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'];
-  const monthlyCollected = analytics?.monthlyTrends?.map(m => m.collectedKg) || [0, 0, 0, 0, 0, 0];
-  const monthlyRecycled = analytics?.monthlyTrends?.map(m => m.recycledKg) || [0, 0, 0, 0, 0, 0];
+  const hasMonthlyData = analytics?.monthlyTrends && analytics.monthlyTrends.some(m => (m.collectedKg || m.recycledKg) > 0);
+  const monthlyLabels = analytics?.monthlyTrends?.map(m => m.month) || [];
+  const monthlyCollected = analytics?.monthlyTrends?.map(m => m.collectedKg) || [];
+  const monthlyRecycled = analytics?.monthlyTrends?.map(m => m.recycledKg) || [];
   const barData = {
     labels: monthlyLabels,
     datasets: [
@@ -307,7 +315,7 @@ export default function AdminDashboard({ onRefreshNeeded }) {
             {analytics?.totalRequests ?? reports.length}
           </div>
           <div style={{ fontSize: '0.74rem', color: 'var(--secondary-text)', marginTop: 4 }}>
-            All-time citizen submissions
+            Citizen requests logged
           </div>
         </div>
 
@@ -351,7 +359,7 @@ export default function AdminDashboard({ onRefreshNeeded }) {
         </div>
       </div>
 
-      {/* Environmental Impact Estimates Section */}
+      {/* Illustrative Environmental Estimates Section */}
       <div style={{
         background: 'var(--very-light-mint)',
         border: '1.5px solid var(--soft-leaf-green)',
@@ -379,7 +387,7 @@ export default function AdminDashboard({ onRefreshNeeded }) {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--primary-text)' }}>
-                Lifecycle Environmental Impact
+                Illustrative Environmental Estimates
               </h4>
               <span style={{
                 background: '#ffffff',
@@ -390,11 +398,11 @@ export default function AdminDashboard({ onRefreshNeeded }) {
                 fontWeight: 700,
                 color: 'var(--secondary-green)'
               }}>
-                Heuristic EPA Estimates
+                Indicative Heuristic Model
               </span>
             </div>
             <p style={{ fontSize: '0.76rem', color: 'var(--secondary-text)', marginTop: 2 }}>
-              Calculated on diverted waste: 0.72 kg CO₂ saved / kg waste; 1 tree absorbs ~22 kg CO₂/yr; 1.8 kWh energy saved/kg.
+              Illustrative figures calculated on recorded diverted waste (approx. 0.72 kg CO₂ saved / kg waste; 1 tree absorbs ~22 kg CO₂/yr; 1.8 kWh energy saved/kg). Values represent indicative models, not certified laboratory measurements.
             </p>
           </div>
         </div>
@@ -428,39 +436,59 @@ export default function AdminDashboard({ onRefreshNeeded }) {
       </div>
 
       {/* Charts Row */}
-      <div className="grid-2">
-        <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <div>
-              <h4 style={{ fontSize: '1.02rem', fontWeight: 800, color: 'var(--primary-text)' }}>
-                Waste by Category Breakdown
-              </h4>
-              <p style={{ fontSize: '0.76rem', color: 'var(--secondary-text)' }}>
-                Aggregated from database waste reports
-              </p>
-            </div>
-          </div>
-          <div style={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Doughnut data={doughnutData} options={{ maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }} />
-          </div>
+      {analyticsError && !analytics ? (
+        <div style={{ textAlign: 'center', padding: '30px', background: '#ffffff', borderRadius: 18, border: '1.5px solid var(--border-light)' }}>
+          <AlertCircle size={24} color="#b45309" style={{ margin: '0 auto 8px' }} />
+          <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: 'var(--primary-text)' }}>Analytics Unavailable</h4>
+          <p style={{ fontSize: '0.78rem', color: 'var(--secondary-text)', marginTop: 4 }}>{analyticsError}</p>
         </div>
+      ) : (
+        <div className="grid-2">
+          <div className="card">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div>
+                <h4 style={{ fontSize: '1.02rem', fontWeight: 800, color: 'var(--primary-text)' }}>
+                  Waste by Category Breakdown
+                </h4>
+                <p style={{ fontSize: '0.76rem', color: 'var(--secondary-text)' }}>
+                  Aggregated from recorded database reports
+                </p>
+              </div>
+            </div>
+            {hasCategoryData ? (
+              <div style={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Doughnut data={doughnutData} options={{ maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }} />
+              </div>
+            ) : (
+              <div style={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--secondary-text)', fontSize: '0.84rem' }}>
+                No category records available to plot.
+              </div>
+            )}
+          </div>
 
-        <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <div>
-              <h4 style={{ fontSize: '1.02rem', fontWeight: 800, color: 'var(--primary-text)' }}>
-                Monthly Collection & Recycling Trends
-              </h4>
-              <p style={{ fontSize: '0.76rem', color: 'var(--secondary-text)' }}>
-                Last 6 months recorded municipal weights
-              </p>
+          <div className="card">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div>
+                <h4 style={{ fontSize: '1.02rem', fontWeight: 800, color: 'var(--primary-text)' }}>
+                  Monthly Collection & Recycling Trends
+                </h4>
+                <p style={{ fontSize: '0.76rem', color: 'var(--secondary-text)' }}>
+                  Last 6 months recorded municipal weights
+                </p>
+              </div>
             </div>
-          </div>
-          <div style={{ height: 260 }}>
-            <Bar data={barData} options={{ maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }} />
+            {hasMonthlyData ? (
+              <div style={{ height: 260 }}>
+                <Bar data={barData} options={{ maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }} />
+              </div>
+            ) : (
+              <div style={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--secondary-text)', fontSize: '0.84rem' }}>
+                No monthly collection records recorded yet.
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      )}
 
       {/* TSP Route Optimization Interactive Map Section */}
       {optimizedRoute && (
@@ -469,7 +497,7 @@ export default function AdminDashboard({ onRefreshNeeded }) {
             <div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--secondary-green)', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 <Compass size={15} />
-                <span>TSP Shortest-Path Algorithm Solution</span>
+                <span>TSP Shortest-Path Heuristic Solution</span>
               </div>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary-text)', marginTop: 2 }}>
                 Optimized Multi-Stop Fleet Collection Route
@@ -489,7 +517,7 @@ export default function AdminDashboard({ onRefreshNeeded }) {
                 <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary-forest)' }}>{optimizedRoute.estimatedTimeMin} min</div>
               </div>
               <div style={{ background: 'var(--pale-green-section)', padding: '6px 14px', borderRadius: 12, border: '1px solid var(--soft-leaf-green)', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.68rem', color: 'var(--secondary-text)', fontWeight: 700 }}>Fuel Saved</div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--secondary-text)', fontWeight: 700 }}>Est. Distance Reduction</div>
                 <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--secondary-green)' }}>{optimizedRoute.fuelSavedPercent}%</div>
               </div>
             </div>

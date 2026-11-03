@@ -1,42 +1,62 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Truck, 
-  Award, 
-  Recycle, 
-  Search, 
   MapPin, 
+  Calendar, 
+  BookOpen, 
+  Search, 
   ArrowRight, 
-  PlusCircle
+  PlusCircle,
+  LogIn
 } from 'lucide-react';
 import LiveTrackingCard from './LiveTrackingCard';
 import { ForestSilhouettes, FloatingLeaf } from './NatureDecorations';
 
 const SERVICES = [
-  { id: 'pickup', title: 'Pick up', icon: Truck, desc: 'Curbside collection request' },
-  { id: 'smartbin', title: 'Recycling Map', icon: MapPin, desc: 'Find nearby drop-off stations' },
-  { id: 'reward', title: 'Eco Points', icon: Award, desc: 'Redeem sustainable rewards' },
-  { id: 'recycling', title: 'Waste Catalog', icon: Recycle, desc: 'Material segregation guide' }
+  { id: 'pickup', title: 'Pickup Request', icon: Truck, desc: 'Schedule doorstep waste collection' },
+  { id: 'centres', title: 'Recycling Centres', icon: MapPin, desc: 'Find nearby municipal drop-off stations' },
+  { id: 'schedule', title: 'Collection Schedule', icon: Calendar, desc: 'View calendar rounds and dates' },
+  { id: 'guide', title: 'Waste Guide', icon: BookOpen, desc: 'Material segregation & resin guide' }
 ];
 
 const RECYCLING_MATERIALS = [
   { name: 'Plastic', img: 'https://images.unsplash.com/photo-1526951521990-620dc14c214b?auto=format&fit=crop&w=400&q=80', badge: 'High Yield', desc: 'Bottles, jugs & clean containers' },
   { name: 'Organic', img: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80', badge: 'Compostable', desc: 'Food scraps, peelings & leaves' },
-  { name: 'Electronic', img: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?auto=format&fit=crop&w=400&q=80', badge: 'Certified Safe', desc: 'Batteries, cables & old gadgets' },
-  { name: 'Glass', img: 'https://images.unsplash.com/photo-1528323273322-d81458248d40?auto=format&fit=crop&w=400&q=80', badge: '100% Recyclable', desc: 'Jars, beverage & sauce bottles' },
+  { name: 'Electronic', img: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?auto=format&fit=crop&w=400&q=80', badge: 'Hazardous Stream', desc: 'Batteries, cables & old gadgets' },
+  { name: 'Glass', img: 'https://images.unsplash.com/photo-1528323273322-d81458248d40?auto=format&fit=crop&w=400&q=80', badge: 'Recyclable', desc: 'Jars, beverage & sauce bottles' },
   { name: 'Metal', img: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=400&q=80', badge: 'Infinite Cycle', desc: 'Tin cans, foil & metal caps' }
 ];
 
 export default function CitizenHome({ 
   onOpenPickup, 
-  onOpenScanner, 
   onNavigateCentres, 
-  onNavigateSchedule,
-  onNavigateCatalog,
+  onNavigateSchedule, 
+  onNavigateCatalog, 
+  onOpenAuth,
   reports = [], 
-  userPoints = 1250,
+  userPoints = 0,
   currentUser
 }) {
+  const [searchQuery, setSearchQuery] = useState('');
   const latestReport = reports[0];
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      onNavigateCatalog(searchQuery.trim());
+    } else {
+      onNavigateCatalog();
+    }
+  };
+
+  const getUserLocationText = () => {
+    if (!currentUser) return null;
+    const parts = [];
+    if (currentUser.address?.street) parts.push(currentUser.address.street);
+    if (currentUser.address?.city) parts.push(currentUser.address.city);
+    if (currentUser.address?.state) parts.push(currentUser.address.state);
+    return parts.length > 0 ? parts.join(', ') : 'Location on profile';
+  };
 
   return (
     <div style={{ maxWidth: 1160, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 26 }}>
@@ -70,98 +90,144 @@ export default function CitizenHome({
                 fontWeight: 800,
                 boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
               }}>
-                {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'A'}
+                {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'W'}
               </div>
               <div>
                 <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--primary-text)', letterSpacing: '-0.3px' }}>
-                  Hello, {currentUser?.name || 'Alex'}
+                  {currentUser ? `Hello, ${currentUser.name}` : 'Welcome to WasteWise'}
                 </div>
                 <div style={{ fontSize: '0.82rem', color: 'var(--secondary-text)', display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
-                  <MapPin size={13} color="var(--secondary-green)" />
-                  <span>{currentUser?.address?.city || 'Buffalo'}, NY · Lake Star District</span>
+                  {currentUser ? (
+                    <>
+                      <MapPin size={13} color="var(--secondary-green)" />
+                      <span>{getUserLocationText()}</span>
+                    </>
+                  ) : (
+                    <span>Smart Municipal Waste Management & Segregation Portal</span>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Gamified Eco-Points Card */}
-            <div style={{
-              background: '#ffffff',
-              border: '1.5px solid #d4ebd6',
-              borderRadius: 18,
-              padding: '10px 18px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 16,
-              boxShadow: '0 2px 10px rgba(22, 101, 52, 0.05)'
-            }}>
-              <div>
-                <div style={{ fontSize: '0.68rem', color: 'var(--secondary-text)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>
-                  Eco Balance
+            {/* Account Status / Eco-Points Card */}
+            {currentUser ? (
+              <div style={{
+                background: '#ffffff',
+                border: '1.5px solid #d4ebd6',
+                borderRadius: 18,
+                padding: '10px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 16,
+                boxShadow: '0 2px 10px rgba(22, 101, 52, 0.05)'
+              }}>
+                <div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--secondary-text)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>
+                    Eco Points Balance
+                  </div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--primary-forest)' }}>
+                    {userPoints.toLocaleString()} <span style={{ fontSize: '0.78rem', color: 'var(--secondary-green)', fontWeight: 600 }}>pts</span>
+                  </div>
                 </div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--primary-forest)' }}>
-                  {userPoints.toLocaleString()} <span style={{ fontSize: '0.78rem', color: 'var(--secondary-green)', fontWeight: 600 }}>pts</span>
+                <div style={{ borderLeft: '1.5px solid var(--border-light)', paddingLeft: 14 }}>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--secondary-text)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>
+                    Account Role
+                  </div>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--primary-text)', textTransform: 'capitalize' }}>
+                    {currentUser.role}
+                  </div>
                 </div>
               </div>
-              <div style={{ borderLeft: '1.5px solid var(--border-light)', paddingLeft: 14 }}>
-                <div style={{ fontSize: '0.68rem', color: 'var(--secondary-text)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>
-                  Community Level
+            ) : (
+              <div style={{
+                background: '#ffffff',
+                border: '1.5px solid #d4ebd6',
+                borderRadius: 18,
+                padding: '10px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                boxShadow: '0 2px 10px rgba(22, 101, 52, 0.05)'
+              }}>
+                <div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--secondary-text)', fontWeight: 600 }}>
+                    Sign in to track pickups & earn points
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--primary-text)' }}>
-                  Eco Green 82
-                </div>
+                <button
+                  onClick={() => onOpenAuth('login')}
+                  className="btn-primary"
+                  style={{ padding: '6px 14px', fontSize: '0.8rem' }}
+                >
+                  <LogIn size={13} /> Sign In
+                </button>
               </div>
-            </div>
+            )}
           </div>
 
-          {/* Search & Action Bar */}
-          <div style={{
-            background: '#ffffff',
-            borderRadius: 999,
-            padding: '7px 8px 7px 18px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12,
-            border: '1.5px solid #d4ebd6',
-            boxShadow: '0 4px 14px rgba(22, 101, 52, 0.06)'
-          }}>
+          {/* Functional Search & Action Bar */}
+          <form 
+            onSubmit={handleSearchSubmit}
+            style={{
+              background: '#ffffff',
+              borderRadius: 999,
+              padding: '6px 8px 6px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              border: '1.5px solid #d4ebd6',
+              boxShadow: '0 4px 14px rgba(22, 101, 52, 0.06)'
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
               <Search size={18} color="var(--secondary-green)" />
               <input
                 type="text"
-                placeholder="Search recyclable materials, guidelines, or collection zones..."
-                onClick={onNavigateCatalog}
-                readOnly
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search recyclable materials, guidelines, or plastic resin codes..."
                 style={{
                   border: 'none',
                   background: 'transparent',
                   width: '100%',
                   fontSize: '0.88rem',
-                  color: 'var(--primary-text)',
-                  cursor: 'pointer'
+                  color: 'var(--primary-text)'
                 }}
               />
             </div>
-            <button
-              onClick={onOpenPickup}
-              className="btn-primary"
-              style={{ padding: '8px 18px', fontSize: '0.84rem' }}
-            >
-              <PlusCircle size={15} />
-              <span>Book Collection</span>
-            </button>
-          </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {searchQuery && (
+                <button
+                  type="submit"
+                  className="btn-secondary"
+                  style={{ padding: '7px 14px', fontSize: '0.8rem' }}
+                >
+                  Search Guide
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onOpenPickup}
+                className="btn-primary"
+                style={{ padding: '8px 18px', fontSize: '0.84rem' }}
+              >
+                <PlusCircle size={15} />
+                <span>Book Collection</span>
+              </button>
+            </div>
+          </form>
         </div>
       </div>
 
-      {/* Services Grid */}
+      {/* Services Grid (4 Functional Working Cards) */}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <h3 style={{ fontSize: '1.08rem', fontWeight: 800, color: 'var(--primary-text)' }}>
             Waste Management Services
           </h3>
           <span style={{ fontSize: '0.78rem', color: 'var(--secondary-text)' }}>
-            Real-time municipal dispatch
+            Request doorstep waste collection, monitor status updates, and locate nearby recycling centres.
           </span>
         </div>
 
@@ -170,22 +236,24 @@ export default function CitizenHome({
             const Icon = svc.icon;
             const handleClick = () => {
               if (svc.id === 'pickup') onOpenPickup();
-              else if (svc.id === 'smartbin') onNavigateCentres();
-              else if (svc.id === 'recycling') onNavigateCatalog();
-              else if (svc.id === 'reward') onNavigateSchedule();
+              else if (svc.id === 'centres') onNavigateCentres();
+              else if (svc.id === 'schedule') onNavigateSchedule();
+              else if (svc.id === 'guide') onNavigateCatalog();
             };
 
             return (
-              <div
+              <button
                 key={svc.id}
                 onClick={handleClick}
                 className="card"
                 style={{
+                  textAlign: 'left',
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 10,
-                  padding: '20px'
+                  gap: 12,
+                  padding: '20px',
+                  background: '#ffffff'
                 }}
               >
                 <div style={{
@@ -209,7 +277,7 @@ export default function CitizenHome({
                     {svc.desc}
                   </p>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -226,7 +294,7 @@ export default function CitizenHome({
               </h3>
             </div>
             <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--primary-forest)' }}>
-              Ref: {latestReport.trackingId}
+              Tracking ID: {latestReport.trackingId}
             </span>
           </div>
 
@@ -242,11 +310,11 @@ export default function CitizenHome({
               Segregation & Recycling Materials
             </h3>
             <p style={{ fontSize: '0.78rem', color: 'var(--secondary-text)' }}>
-              Separate your waste at home into these verified categories
+              Separate your waste at home into these verified municipal categories
             </p>
           </div>
           <button
-            onClick={onNavigateCatalog}
+            onClick={() => onNavigateCatalog()}
             style={{
               fontSize: '0.82rem',
               fontWeight: 700,
@@ -256,7 +324,7 @@ export default function CitizenHome({
               gap: 4
             }}
           >
-            <span>Full Catalog</span>
+            <span>Full Waste Guide</span>
             <ArrowRight size={14} />
           </button>
         </div>
@@ -269,7 +337,7 @@ export default function CitizenHome({
           {RECYCLING_MATERIALS.map(mat => (
             <div
               key={mat.name}
-              onClick={onNavigateCatalog}
+              onClick={() => onNavigateCatalog(mat.name)}
               className="card"
               style={{
                 cursor: 'pointer',

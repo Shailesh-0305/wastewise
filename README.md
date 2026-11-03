@@ -32,7 +32,7 @@ WasteWise features a nature-inspired light design system:
 ## ♻️ Supported Waste Categories
 
 The platform consistently enforces 7 core waste streams across React components, Express controllers, and MongoDB schemas:
-1. **Plastic** (PETE 1, HDPE 2, LDPE 4, PP 5)
+1. **Plastic** (PETE 1, HDPE 2, PVC 3, LDPE 4, PP 5, PS 6, Other 7)
 2. **Organic** (Kitchen scraps, food waste, garden trimmings)
 3. **Electronic** (Consumer electronics, circuit boards, batteries)
 4. **Medical** (Expired pharmaceuticals, safe sharps containers, bio-PPE)
@@ -46,27 +46,26 @@ The platform consistently enforces 7 core waste streams across React components,
 
 ### 1. Citizen Portal
 - **User Authentication**: Secure JWT-based registration and login with bcrypt password hashing and privilege escalation prevention.
-- **Curbside Pickup Requests**: Comprehensive booking modal with category selector, quantity, unit (`bags`, `kg`, `items`), preferred pickup day/time slot, and GPS geolocation coordinate capture.
-- **Live Status Tracking**: Multi-stage progress tracking (*Reported ➔ Confirmed ➔ Assigned ➔ In Progress ➔ Collected ➔ Recycled*) with courier details and route polyline.
-- **Eco-Points & Gamification**: Points awarded for responsible recycling, community ranking (*Eco Green 82*), and estimated CO₂ reduction.
-- **Waste Catalog & Segregation Guide**: Resin identification codes, segregation rules (*Clean, Crush, Pack*), and prep tips.
-- **Simulated AI Waste Scanner**: Interactive camera/sample classifier demonstrating automated recyclability detection and carbon metrics.
+- **Curbside Pickup Requests**: Comprehensive booking modal with 7 waste categories, quantity, unit (`bags`, `kg`, `items`), preferred pickup date/time slot, and GPS geolocation coordinate capture.
+- **Live Status Tracking**: Multi-stage progress tracking (*Reported ➔ Confirmed ➔ Assigned ➔ In Progress ➔ Collected ➔ Recycled*) with driver assignment status.
+- **Eco-Points & Recycling Profile**: Points awarded for verified recycling and status tracking.
+- **Waste Catalog & Resin Guide**: Official plastic resin identification codes (1 to 7), segregation rules (*Clean, Crush, Pack*), and prep tips across all 7 streams.
 
 ### 2. Interactive Recycling Centres Directory
 - **Leaflet Map Integration**: Light-themed interactive map with custom pins for municipal depots and drop-off stations.
-- **Transit Mode Estimator**: Dynamic travel times calculated for **Walking**, **Cycling**, and **Driving**.
-- **Material Filtering**: Instant filter by waste category with operating hours, phone contact, and distance specs.
+- **Turn-by-Turn Navigation**: One-click directions integration with Google Maps.
+- **Material Filtering**: Instant filter by waste category with operating hours, phone contact, and location details.
 
 ### 3. Collection Schedule Calendar
-- **Interactive Monthly Grid**: Date matrix with color-coded collection tags indicating scheduled neighborhood rounds.
-- **District Timetable**: Zone North & Zone Central schedules with driver details and curbside collection guidelines.
+- **Interactive Monthly Grid**: Dynamic calendar opening on the current month with day-by-day scheduling.
+- **Timetable Inspection**: Scheduled rounds with vehicle details and curbside collection guidelines.
 
 ### 4. Municipal Operations & Fleet Dispatch (Admin)
 - **Database-Driven Analytics**: KPI cards showing total reports, pending pickups, completed pickups, and total collected mass in kg.
-- **Environmental Impact Metrics**: EPA-based lifecycle carbon calculations (*CO₂ diverted, tree-equivalent preserved, kWh saved*), clearly designated as estimates.
-- **Chart.js Visualizations**: Category distribution Doughnut chart and 6-month collection trend Bar chart.
-- **TSP Route Optimization**: Nearest-Neighbor Traveling Salesperson algorithm calculating the shortest multi-stop path from Central Depot through all active pickup waypoints to the nearest recycling facility, with fuel savings estimates.
-- **Full CRUD Management**: View, filter by category/status, search by tracking ID or citizen name, update status in real time, or delete records with MongoDB persistence.
+- **Illustrative Environmental Estimates**: Indicative carbon calculations (*CO₂ diverted, tree-equivalent preserved, kWh saved*) based on collected waste mass.
+- **Chart.js Visualizations**: Category distribution Doughnut chart and collection trend Bar chart.
+- **TSP Route Optimization**: Nearest-Neighbor Traveling Salesperson algorithm calculating the shortest multi-stop path from Central Depot through all active pickup waypoints to the nearest recycling facility, with distance reduction metrics.
+- **Full CRUD Management**: View, filter by category/status, search by tracking ID or citizen name, edit records in-place, update lifecycle status, or delete entries.
 
 ---
 
@@ -76,7 +75,7 @@ The platform consistently enforces 7 core waste streams across React components,
 |---|---|
 | **Frontend** | React 19, Vite, Leaflet, React-Leaflet, Chart.js, React-ChartJS-2, Lucide Icons, Canvas Confetti |
 | **Backend** | Node.js, Express.js REST API, JSON Web Tokens (JWT), Bcrypt.js, CORS, Dotenv |
-| **Database** | MongoDB with Mongoose (Local `mongod` or MongoDB Atlas) + Adaptive In-Memory Store Sync Fallback |
+| **Database** | MongoDB with Mongoose (Local `mongod` or MongoDB Atlas) |
 | **Security** | Role-based authorization, strict JWT validation, public registration privilege control |
 
 ---
@@ -86,7 +85,7 @@ The platform consistently enforces 7 core waste streams across React components,
 ### Prerequisites
 - Node.js (v18 or higher recommended)
 - npm (v9 or higher)
-- MongoDB (Optional: Local `mongod` service or MongoDB Atlas URI; server runs with adaptive synchronization if database is unreachable)
+- MongoDB (Local `mongod` service or MongoDB Atlas URI)
 
 ### 1. Clone the Repository
 ```bash
@@ -101,7 +100,7 @@ npm run install-all
 *(Installs root concurrently runner, server packages, and client packages).*
 
 ### 3. Configure Environment Variables
-Create a `.env` file in the `server` directory (or copy from `server/.env.example`):
+Create a `.env` file in the `server` directory (matching `server/.env.example`):
 ```bash
 cp server/.env.example server/.env
 ```
@@ -109,8 +108,8 @@ cp server/.env.example server/.env
 `server/.env`:
 ```env
 PORT=5000
-MONGODB_URI=mongodb://127.0.0.1:27017/wastewise
-JWT_SECRET=wastewise_secret_key_2026_super_secure
+MONGODB_URI=your_mongodb_atlas_connection_string
+JWT_SECRET=replace_with_a_long_random_secret
 ```
 
 ### 4. Seed the Database (Optional)
@@ -134,19 +133,9 @@ npm run dev:server
 npm run dev:client
 ```
 
-- **Frontend Client**: `http://localhost:5173`
+- **Frontend Client**: `http://localhost:5173/wastewise/`
 - **Backend API**: `http://localhost:5000`
 - **API Health Check**: `http://localhost:5000/api/health`
-
----
-
-## 🔑 Demo Credentials
-
-| Role | Email | Password | Access Capabilities |
-|---|---|---|---|
-| **Citizen** | `alex@example.com` | `citizen123` | Request pickups, track reports, view eco-points |
-| **Admin** | `admin@wastewise.org` | `admin123` | Full CRUD operations, status transitions, TSP route optimizer, analytics |
-| **Driver** | `travis@wastewise.org` | `driver123` | Fleet dispatch, route tracking, collection updates |
 
 ---
 
@@ -161,6 +150,7 @@ npm run dev:client
 - `POST /api/reports` – Create a new pickup request (with GPS coordinates, category, quantity).
 - `GET /api/reports` – Query all reports with optional `?category=&status=&search=`.
 - `GET /api/reports/:id` – Fetch single report details and timeline.
+- `PUT /api/reports/:id` – Full edit of report details (category, quantity, address, notes).
 - `PATCH /api/reports/:id/status` – Update pickup status (*Reported, Confirmed, Assigned, In Progress, Collected, Recycled, Cancelled*).
 - `PATCH /api/reports/:id/assign` – Assign courier and vehicle to report.
 - `DELETE /api/reports/:id` – Delete report record (Admin only).
@@ -175,7 +165,7 @@ npm run dev:client
 - `POST /api/schedules` – Schedule municipal collection round (Admin only).
 
 ### Analytics & Optimization (`/api/analytics`, `/api/routes`)
-- `GET /api/analytics/overview` – Database-driven statistics, category distribution, monthly trends, and EPA environmental impact estimates.
+- `GET /api/analytics/overview` – Database-driven statistics, category distribution, monthly trends, and illustrative environmental impact estimates.
 - `GET /api/routes/collection-route` – Traveling Salesperson (TSP) route calculation with Depot, waypoints, and drop-off facility.
 
 ---
@@ -190,11 +180,6 @@ npm run lint --prefix client
 Build production client:
 ```bash
 npm run build --prefix client
-```
-
-Verify backend health:
-```bash
-curl http://localhost:5000/api/health
 ```
 
 ---
