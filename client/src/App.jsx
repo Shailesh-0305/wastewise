@@ -52,7 +52,7 @@ export default function App() {
         setCurrentUser(res.user);
         setUserPoints(res.user.ecoPoints || 0);
         fetchReports();
-        // Route role appropriately if currently on landing or initial load
+        // Route role appropriately upon verified authentication
         if (res.user.role === 'admin') {
           setActiveTab(prev => prev === 'landing' ? 'admin' : prev);
         } else {
@@ -75,6 +75,28 @@ export default function App() {
   useEffect(() => {
     checkCurrentUser();
   }, [checkCurrentUser]);
+
+  // Protected tab navigation: unauthenticated users cannot access application features
+  const handleProtectedTabChange = (targetTab) => {
+    if (targetTab === 'landing') {
+      setActiveTab('landing');
+      return;
+    }
+
+    if (!currentUser) {
+      // Intercept attempt to access protected features and require authentication
+      setAuthTab('login');
+      setIsAuthOpen(true);
+      return;
+    }
+
+    if (targetTab === 'admin' && currentUser.role !== 'admin') {
+      setActiveTab('home');
+      return;
+    }
+
+    setActiveTab(targetTab);
+  };
 
   // Handle pickup request opening: requires authentication
   const handleOpenPickup = () => {
@@ -113,6 +135,11 @@ export default function App() {
   };
 
   const handleNavigateCatalog = (query = '') => {
+    if (!currentUser) {
+      setAuthTab('login');
+      setIsAuthOpen(true);
+      return;
+    }
     setCatalogSearchQuery(query);
     setActiveTab('catalog');
   };
@@ -127,7 +154,7 @@ export default function App() {
       {/* Top Main Navigation */}
       <Navbar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleProtectedTabChange}
         currentUser={currentUser}
         onOpenPickup={handleOpenPickup}
         onOpenAuth={handleOpenAuth}
@@ -136,25 +163,21 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      {activeTab === 'landing' ? (
-        // Full-width immersive landing page without max-width constraint
+      {(!currentUser || activeTab === 'landing') ? (
+        // Public storytelling landing page
         <main style={{ flex: 1, width: '100%', margin: 0, padding: 0 }}>
           <GreenJourneyLanding
             onOpenAuth={handleOpenAuth}
-            onRequestPickup={handleOpenPickup}
-            onNavigateCentres={() => { setActiveTab('centres'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-            onNavigateSchedule={() => { setActiveTab('schedule'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-            onNavigateCatalog={() => { handleNavigateCatalog(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
           />
         </main>
       ) : (
-        // Standard constrained container for citizen portal, admin dashboard, map, schedule & guide
+        // Protected application views (accessible exclusively to authenticated users)
         <main style={{ flex: 1, padding: '24px 20px 80px', maxWidth: 1300, width: '100%', margin: '0 auto' }}>
           {activeTab === 'home' && (
             <CitizenHome
               onOpenPickup={handleOpenPickup}
-              onNavigateCentres={() => setActiveTab('centres')}
-              onNavigateSchedule={() => setActiveTab('schedule')}
+              onNavigateCentres={() => handleProtectedTabChange('centres')}
+              onNavigateSchedule={() => handleProtectedTabChange('schedule')}
               onNavigateCatalog={handleNavigateCatalog}
               onOpenAuth={handleOpenAuth}
               reports={reports}
@@ -225,11 +248,11 @@ export default function App() {
                     <LogIn size={15} /> Sign In as Admin
                   </button>
                   <button
-                    onClick={() => setActiveTab(currentUser ? 'home' : 'landing')}
+                    onClick={() => setActiveTab('home')}
                     className="btn-secondary"
                     style={{ padding: '9px 18px', fontSize: '0.86rem' }}
                   >
-                    Return to {currentUser ? 'Home' : 'Landing Page'}
+                    Return to Portal
                   </button>
                 </div>
               </div>
@@ -238,70 +261,72 @@ export default function App() {
         </main>
       )}
 
-      {/* Floating Mobile Bottom Navigation */}
-      <nav 
-        className="mobile-bottom-nav"
-        aria-label="Mobile Navigation"
-        style={{
-          position: 'fixed',
-          bottom: 16,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(16px)',
-          border: '1.5px solid var(--border-light)',
-          borderRadius: 999,
-          padding: '8px 18px',
-          alignItems: 'center',
-          gap: 16,
-          boxShadow: '0 8px 32px rgba(22, 101, 52, 0.12)',
-          zIndex: 90
-        }}
-      >
-        {[
-          ...(currentUser ? [{ id: 'home', label: 'Portal', icon: Home }] : []),
-          { id: 'landing', label: 'Journey', icon: Compass },
-          { id: 'catalog', label: 'Guide', icon: BookOpen },
-          { id: 'schedule', label: 'Schedule', icon: Calendar },
-          { id: 'centres', label: 'Centres', icon: MapPin },
-          ...(currentUser?.role === 'admin' ? [{ id: 'admin', label: 'Admin', icon: BarChart3 }] : [])
-        ].map(btn => {
-          const Icon = btn.icon;
-          const isActive = activeTab === btn.id;
+      {/* Floating Mobile Bottom Navigation: Only for Authenticated Users */}
+      {currentUser && (
+        <nav 
+          className="mobile-bottom-nav"
+          aria-label="Mobile Navigation"
+          style={{
+            position: 'fixed',
+            bottom: 16,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(16px)',
+            border: '1.5px solid var(--border-light)',
+            borderRadius: 999,
+            padding: '8px 18px',
+            alignItems: 'center',
+            gap: 16,
+            boxShadow: '0 8px 32px rgba(22, 101, 52, 0.12)',
+            zIndex: 90
+          }}
+        >
+          {[
+            { id: 'home', label: 'Portal', icon: Home },
+            { id: 'landing', label: 'Story', icon: Compass },
+            { id: 'catalog', label: 'Guide', icon: BookOpen },
+            { id: 'schedule', label: 'Schedule', icon: Calendar },
+            { id: 'centres', label: 'Centres', icon: MapPin },
+            ...(currentUser.role === 'admin' ? [{ id: 'admin', label: 'Admin', icon: BarChart3 }] : [])
+          ].map(btn => {
+            const Icon = btn.icon;
+            const isActive = activeTab === btn.id;
 
-          return (
-            <button
-              key={btn.id}
-              onClick={() => {
-                if (btn.id === 'catalog') {
-                  setCatalogSearchQuery('');
-                }
-                setActiveTab(btn.id);
-                if (btn.id === 'landing') {
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-              }}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 2,
-                color: isActive ? 'var(--primary-forest)' : 'var(--secondary-text)',
-                transition: 'all 0.15s',
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '4px 6px'
-              }}
-            >
-              <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
-              <span style={{ fontSize: '0.66rem', fontWeight: isActive ? 800 : 500 }}>
-                {btn.label}
-              </span>
-            </button>
-          );
-        })}
-      </nav>
+            return (
+              <button
+                key={btn.id}
+                onClick={() => {
+                  if (btn.id === 'catalog') {
+                    setCatalogSearchQuery('');
+                  }
+                  setActiveTab(btn.id);
+                  if (btn.id === 'landing') {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 2,
+                  color: isActive ? 'var(--primary-forest)' : 'var(--secondary-text)',
+                  transition: 'all 0.15s',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px 6px'
+                }}
+              >
+                <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+                <span style={{ fontSize: '0.66rem', fontWeight: isActive ? 800 : 500 }}>
+                  {btn.label}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+      )}
 
       {/* Authentication Modal */}
       <AuthModal
