@@ -51,15 +51,18 @@ export const register = async (req, res) => {
         name: name.trim(),
         email: normalizedEmail,
         password,
-        role,
-        phone: phone || '+91 98765 43210',
+        role: 'citizen',
+        phone: phone ? phone.trim() : '',
         address: {
-          street: street || '42 Cross Cut Road',
-          locality: locality || 'Gandhipuram',
-          city: city || 'Coimbatore',
-          state: state || 'Tamil Nadu',
-          zip: zip || '641001'
-        }
+          street: street ? street.trim() : '',
+          locality: locality ? locality.trim() : '',
+          city: city ? city.trim() : 'Coimbatore',
+          state: state ? state.trim() : 'Tamil Nadu',
+          zip: zip ? zip.trim() : ''
+        },
+        ecoPoints: 0,
+        co2SavedKg: 0,
+        ecoLevel: 'Eco Starter'
       });
 
       const token = generateToken(user);

@@ -38,16 +38,19 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultTab =
           setError(res.message || 'Invalid email or password.');
         }
       } else {
+        const cleanPhone = phone.trim() 
+          ? (phone.trim().startsWith('+91') ? phone.trim() : `+91 ${phone.trim().replace(/^\+?91\s*/, '')}`) 
+          : '';
         const res = await api.register({
           name: name.trim(),
           email: email.trim().toLowerCase(),
           password,
-          phone: phone.trim() ? (phone.trim().startsWith('+91') ? phone.trim() : `+91 ${phone.trim().replace(/^\+?91\s*/, '')}`) : '+91 98765 43210',
+          phone: cleanPhone,
           street: street.trim(),
           locality: locality.trim(),
           city: city.trim() || 'Coimbatore',
           state: state.trim() || 'Tamil Nadu',
-          zip: pinCode.trim() || '641001'
+          zip: pinCode.trim()
         });
         if (res.success) {
           setSuccessMsg('Account registered successfully!');

@@ -83,9 +83,20 @@ The platform consistently enforces 7 core waste streams across React components,
 
 ---
 
-## 🛰️ Future Backend Live Collection-Worker Tracking Architecture
+## 🚛 Live Collection Tracking: Current Implementation vs Future Architecture
 
-For production and real-world deployment across Coimbatore Municipal Corporation, the following 10-point architectural specification governs genuine, secure live tracking of waste-collection workers:
+### Currently Implemented Tracking UI (Honest Status Workflow)
+- **Genuine Status Workflow**: Pickup requests strictly progress through verified lifecycle stages (*Reported ➔ Confirmed ➔ Assigned ➔ In Progress ➔ Collected ➔ Recycled*).
+- **Awaiting Driver Assignment**: When a report is logged but no driver has been dispatched, the interface explicitly displays *"Awaiting Driver Assignment"*.
+- **Live Location Not Available**: When a driver is assigned but has not started an active collection round or enabled live telemetry streaming, the UI transparently displays *"Live location not available"*.
+- **No Simulated Telemetry**: The application never fabricates moving vehicles, artificial driver locations, or simulated route lines.
+- **Genuine Pickup Location Pinning**: The map displays the resident's pickup destination pin only when genuine coordinates were explicitly attached during request submission; manual address-based pickups are marked with an address badge without claiming exact coordinates.
+
+---
+
+## 🛰️ Future Backend Live Collection-Worker Tracking Architecture (Planned Phase)
+
+For production and real-world deployment across Coimbatore Municipal Corporation, the following 10-point architectural specification governs future genuine, secure live tracking of waste-collection workers:
 
 ### 1. Worker Authentication & Role Gate
 - Collection workers authenticate through the standard `/api/auth/login` endpoint using their driver credentials.

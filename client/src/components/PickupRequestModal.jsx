@@ -39,22 +39,32 @@ export default function PickupRequestModal({ isOpen, onClose, onReportCreated, c
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // Generate dynamic date options on mount
+  // Generate dynamic date options on mount using Asia/Kolkata timezone semantics
   useEffect(() => {
     const days = [];
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const now = new Date();
     
     for (let i = 1; i <= 7; i++) {
-      const d = new Date();
-      d.setDate(d.getDate() + i);
-      const dayName = dayNames[d.getDay()];
-      const mName = monthNames[d.getMonth()];
-      const dateNum = d.getDate();
-      const label = i === 1 ? `Tomorrow (${dayName}, ${mName} ${dateNum})` : `${dayName}, ${mName} ${dateNum}`;
+      const target = new Date(now.getTime() + i * 24 * 60 * 60 * 1000);
+      
+      const value = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(target);
+
+      const weekday = new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short' }).format(target);
+      const monthName = new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', month: 'short' }).format(target);
+      const dayNum = new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric' }).format(target);
+
+      const label = i === 1 
+        ? `Tomorrow (${weekday}, ${monthName} ${dayNum})`
+        : `${weekday}, ${monthName} ${dayNum}`;
+
       days.push({
         label,
-        value: d.toISOString().split('T')[0],
+        value,
         dayName: label
       });
     }
@@ -131,9 +141,10 @@ export default function PickupRequestModal({ isOpen, onClose, onReportCreated, c
         unit,
         address: address.trim(),
         landmark: landmark.trim(),
-        lat: lat || 11.0055,
-        lng: lng || 76.9661,
-        preferredDay: chosenOption ? chosenOption.dayName : 'Upcoming',
+        lat: lat !== null ? lat : undefined,
+        lng: lng !== null ? lng : undefined,
+        preferredDate: selectedDateVal,
+        preferredDay: chosenOption ? chosenOption.label : 'Upcoming',
         preferredSlot: pickupTime,
         notes: notes.trim()
       };

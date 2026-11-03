@@ -41,10 +41,17 @@ const TIMELINE_STEPS = [
 export default function LiveTrackingCard({ activeReport }) {
   if (!activeReport) return null;
 
-  const citizenCoords = [
-    activeReport.location?.coordinates?.lat || 11.0055,
-    activeReport.location?.coordinates?.lng || 76.9661
-  ];
+  const hasCitizenCoords = Boolean(
+    activeReport.location?.coordinates &&
+    typeof activeReport.location.coordinates.lat === 'number' &&
+    typeof activeReport.location.coordinates.lng === 'number'
+  );
+
+  const citizenCoords = hasCitizenCoords
+    ? [activeReport.location.coordinates.lat, activeReport.location.coordinates.lng]
+    : null;
+
+  const mapCenter = citizenCoords || [11.0055, 76.9661];
 
   const hasDriverAssigned = Boolean(
     activeReport.assignedDriver?.name &&
@@ -71,8 +78,8 @@ export default function LiveTrackingCard({ activeReport }) {
       {/* Interactive Map Header */}
       <div style={{ height: 260, position: 'relative', background: '#e2ece4' }}>
         <MapContainer
-          center={citizenCoords}
-          zoom={14}
+          center={mapCenter}
+          zoom={citizenCoords ? 14 : 12}
           scrollWheelZoom={false}
           style={{ height: '100%', width: '100%' }}
         >
@@ -81,12 +88,14 @@ export default function LiveTrackingCard({ activeReport }) {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          <Marker position={citizenCoords} icon={citizenIcon}>
-            <Popup>
-              <strong>Pickup Location</strong><br />
-              {activeReport.location?.address}
-            </Popup>
-          </Marker>
+          {citizenCoords && (
+            <Marker position={citizenCoords} icon={citizenIcon}>
+              <Popup>
+                <strong>Pickup Location</strong><br />
+                {activeReport.location?.address}
+              </Popup>
+            </Marker>
+          )}
 
           {hasLiveDriverLocation && driverCoords && (
             <>
@@ -97,15 +106,17 @@ export default function LiveTrackingCard({ activeReport }) {
                   {activeReport.assignedDriver.vehiclePlate ? ` (${activeReport.assignedDriver.vehiclePlate})` : ''}
                 </Popup>
               </Marker>
-              <Polyline
-                positions={[driverCoords, citizenCoords]}
-                pathOptions={{
-                  color: '#166534',
-                  weight: 3.5,
-                  dashArray: '6, 8',
-                  opacity: 0.8
-                }}
-              />
+              {citizenCoords && (
+                <Polyline
+                  positions={[driverCoords, citizenCoords]}
+                  pathOptions={{
+                    color: '#166534',
+                    weight: 3.5,
+                    dashArray: '6, 8',
+                    opacity: 0.8
+                  }}
+                />
+              )}
             </>
           )}
         </MapContainer>
@@ -131,6 +142,30 @@ export default function LiveTrackingCard({ activeReport }) {
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--secondary-green)' }} />
           <span>Tracking ID: {activeReport.trackingId}</span>
         </div>
+
+        {/* Notice when address-based pickup without GPS pin */}
+        {!hasCitizenCoords && (
+          <div style={{
+            position: 'absolute',
+            bottom: 12,
+            left: 12,
+            right: 12,
+            zIndex: 1000,
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(6px)',
+            borderRadius: 12,
+            padding: '7px 12px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontSize: '0.74rem',
+            color: 'var(--secondary-text)'
+          }}>
+            <MapPin size={13} color="var(--secondary-green)" style={{ flexShrink: 0 }} />
+            <span>Address-based pickup: <strong>{activeReport.location?.address}</strong> (GPS pin not attached)</span>
+          </div>
+        )}
       </div>
 
       {/* Driver & Status Sheet */}

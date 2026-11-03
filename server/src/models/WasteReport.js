@@ -36,8 +36,8 @@ const wasteReportSchema = new mongoose.Schema({
     address: { type: String, required: true },
     landmark: { type: String, default: '' },
     coordinates: {
-      lat: { type: Number, required: true, default: 11.0055 },
-      lng: { type: Number, required: true, default: 76.9661 }
+      lat: { type: Number, required: false },
+      lng: { type: Number, required: false }
     }
   },
   imageUrl: {
@@ -63,9 +63,9 @@ const wasteReportSchema = new mongoose.Schema({
   assignedDriver: {
     driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     name: { type: String, default: 'Awaiting Driver Assignment' },
-    phone: { type: String, default: '+91 94431 82910' },
-    driverIdCode: { type: String, default: 'CBE-DRV-101' },
-    vehiclePlate: { type: String, default: 'TN-38-BZ-4921' },
+    phone: { type: String, default: '' },
+    driverIdCode: { type: String, default: '' },
+    vehiclePlate: { type: String, default: '' },
     currentLocation: {
       lat: { type: Number },
       lng: { type: Number }

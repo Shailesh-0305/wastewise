@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 
 export const getAllCentres = async (req, res) => {
   try {
-    const { material, search } = req.query;
+    const { material, search, city } = req.query;
 
     if (mongoose.connection.readyState !== 1) {
       return res.status(503).json({ success: false, message: 'Database connection offline.' });
@@ -12,6 +12,9 @@ export const getAllCentres = async (req, res) => {
     let query = {};
     if (material && material !== 'All') {
       query.acceptedMaterials = material;
+    }
+    if (city) {
+      query.city = { $regex: city, $options: 'i' };
     }
     if (search) {
       query.$or = [

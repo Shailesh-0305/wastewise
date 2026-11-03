@@ -26,29 +26,30 @@ const userSchema = new mongoose.Schema({
   },
   phone: {
     type: String,
-    default: '+91 98765 43210'
+    default: ''
   },
   address: {
-    street: { type: String, default: '42 Cross Cut Road' },
+    street: { type: String, default: '' },
+    locality: { type: String, default: '' },
     city: { type: String, default: 'Coimbatore' },
     state: { type: String, default: 'Tamil Nadu' },
-    zip: { type: String, default: '641001' },
+    zip: { type: String, default: '' },
     coordinates: {
-      lat: { type: Number, default: 11.0055 },
-      lng: { type: Number, default: 76.9661 }
+      lat: { type: Number },
+      lng: { type: Number }
     }
   },
   ecoPoints: {
     type: Number,
-    default: 1250
+    default: 0
   },
   co2SavedKg: {
     type: Number,
-    default: 18.4
+    default: 0
   },
   ecoLevel: {
     type: String,
-    default: 'Level Eco Green 82'
+    default: 'Eco Starter'
   },
   avatarUrl: {
     type: String,

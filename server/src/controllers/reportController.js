@@ -5,6 +5,16 @@ import mongoose from 'mongoose';
 const VALID_CATEGORIES = ['Plastic', 'Organic', 'Electronic', 'Medical', 'Recyclable', 'Metal', 'Glass'];
 const VALID_STATUSES = ['Reported', 'Confirmed', 'Assigned', 'In Progress', 'Collected', 'Recycled', 'Cancelled'];
 
+const CATEGORY_ECO_POINTS = {
+  Plastic: 20,
+  Recyclable: 15,
+  Glass: 15,
+  Metal: 25,
+  Electronic: 40,
+  Organic: 10,
+  Medical: 10
+};
+
 /**
  * CREATE: Submit a new waste pickup request
  * Requires authentication. Uses the authenticated user's actual profile details.
@@ -21,7 +31,7 @@ export const createReport = async (req, res) => {
       lat,
       lng,
       imageUrl = '',
-      aiClassification = {},
+      preferredDate,
       preferredDay = 'Tomorrow',
       preferredSlot = '07:00 AM - 09:00 AM',
       notes = ''
@@ -53,23 +63,40 @@ export const createReport = async (req, res) => {
     const userId = req.user?.id;
     let citizenName = req.user?.name || 'Citizen User';
     let citizenEmail = req.user?.email || '';
-    let citizenPhone = '+91 98765 43210';
+    let citizenPhone = '';
 
     if (userId && mongoose.Types.ObjectId.isValid(userId)) {
       const userDoc = await User.findById(userId);
       if (userDoc) {
         citizenName = userDoc.name;
         citizenEmail = userDoc.email;
-        citizenPhone = userDoc.phone || citizenPhone;
+        citizenPhone = userDoc.phone || '';
       }
     }
 
     const trackingId = 'WW-' + Math.floor(10000 + Math.random() * 90000);
 
-    const coordinates = {
-      lat: Number(lat) || 11.0055,
-      lng: Number(lng) || 76.9661
-    };
+    // Only assign coordinates when resident explicitly provides genuine GPS coordinates
+    const hasValidCoords = (lat !== undefined && lat !== null && !isNaN(Number(lat))) &&
+                           (lng !== undefined && lng !== null && !isNaN(Number(lng)));
+    const coordinates = hasValidCoords
+      ? { lat: Number(lat), lng: Number(lng) }
+      : undefined;
+
+    // Parse preferred slot date using Asia/Kolkata semantics
+    let slotDate;
+    if (preferredDate && /^\d{4}-\d{2}-\d{2}$/.test(preferredDate)) {
+      slotDate = new Date(`${preferredDate}T00:00:00+05:30`);
+    } else if (preferredDate) {
+      slotDate = new Date(preferredDate);
+    } else {
+      slotDate = new Date(Date.now() + 86400000);
+    }
+
+    // Deterministic category-based eco points calculation
+    const numQuantity = Math.max(1, Math.min(Number(quantity) || 1, 50));
+    const pointsPerUnit = CATEGORY_ECO_POINTS[matchedCategory] || 15;
+    const calculatedEcoPoints = pointsPerUnit * numQuantity;
 
     const newReportData = {
       trackingId,
@@ -90,13 +117,13 @@ export const createReport = async (req, res) => {
       },
       imageUrl,
       aiClassification: {
-        detectedCategory: '',
-        confidence: 0,
+        detectedCategory: matchedCategory,
+        confidence: 1.0,
         estimatedCO2Grams: 0,
-        ecoPointsEarned: 0
+        ecoPointsEarned: calculatedEcoPoints
       },
       preferredSlot: {
-        date: new Date(Date.now() + 86400000),
+        date: slotDate,
         dayName: preferredDay,
         timeSlot: preferredSlot
       },
@@ -106,7 +133,7 @@ export const createReport = async (req, res) => {
         phone: '',
         driverIdCode: '',
         vehiclePlate: '',
-        currentLocation: coordinates,
+        currentLocation: undefined,
         distanceKm: 0,
         etaMinutes: 0
       },
@@ -123,10 +150,10 @@ export const createReport = async (req, res) => {
 
     const created = await WasteReport.create(newReportData);
 
-    // Award eco-points to citizen profile in database
+    // Award deterministic eco-points to citizen profile
     if (userId && mongoose.Types.ObjectId.isValid(userId)) {
       await User.findByIdAndUpdate(userId, {
-        $inc: { ecoPoints: ecoPointsEarned, co2SavedKg: estimatedCO2Grams / 1000 }
+        $inc: { ecoPoints: calculatedEcoPoints }
       });
     }
 
@@ -292,13 +319,21 @@ export const updateReport = async (req, res) => {
     if (notes !== undefined) updateFields.notes = notes;
 
     if (address !== undefined || landmark !== undefined || lat !== undefined || lng !== undefined) {
+      const existingCoords = existingReport.location?.coordinates;
+      let newCoords = undefined;
+      if (lat !== undefined && lng !== undefined && lat !== null && lng !== null) {
+        newCoords = { lat: Number(lat), lng: Number(lng) };
+      } else if (existingCoords) {
+        newCoords = {
+          lat: lat !== undefined && lat !== null ? Number(lat) : existingCoords.lat,
+          lng: lng !== undefined && lng !== null ? Number(lng) : existingCoords.lng
+        };
+      }
+
       updateFields.location = {
-        address: address || existingReport.location.address,
-        landmark: landmark !== undefined ? landmark : existingReport.location.landmark,
-        coordinates: {
-          lat: lat !== undefined ? Number(lat) : existingReport.location.coordinates.lat,
-          lng: lng !== undefined ? Number(lng) : existingReport.location.coordinates.lng
-        }
+        address: address || existingReport.location?.address,
+        landmark: landmark !== undefined ? landmark : (existingReport.location?.landmark || ''),
+        coordinates: newCoords
       };
     }
 

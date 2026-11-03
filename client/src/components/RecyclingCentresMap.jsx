@@ -87,6 +87,9 @@ export default function RecyclingCentresMap() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Explicit Map Target Coordinates (default: Coimbatore City Centre)
+  const [mapTargetCoords, setMapTargetCoords] = useState(COIMBATORE_CENTRE);
+
   // Optional User Geolocation (explicit permission only)
   const [userLocation, setUserLocation] = useState(null);
   const [geoNotice, setGeoNotice] = useState('');
@@ -96,7 +99,7 @@ export default function RecyclingCentresMap() {
     try {
       setLoading(true);
       setError('');
-      const params = {};
+      const params = { city: 'Coimbatore' };
       if (selectedMaterial !== 'All') params.material = selectedMaterial;
       const res = await api.getCentres(params);
       if (res.success && Array.isArray(res.centres)) {
@@ -132,7 +135,10 @@ export default function RecyclingCentresMap() {
     setGeoNotice('');
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+        const coords = [pos.coords.latitude, pos.coords.longitude];
+        setUserLocation(coords);
+        // User location explicitly takes highest priority for map repositioning
+        setMapTargetCoords(coords);
         setLocatingUser(false);
         setGeoNotice('Your device location is now pinned on the map.');
       },
@@ -149,7 +155,24 @@ export default function RecyclingCentresMap() {
     );
   };
 
-  const filteredCentres = centres.filter(c => {
+  const handleSelectCentre = (c) => {
+    setSelectedCentre(c);
+    if (c?.coordinates && typeof c.coordinates.lat === 'number' && typeof c.coordinates.lng === 'number') {
+      setMapTargetCoords([c.coordinates.lat, c.coordinates.lng]);
+    }
+  };
+
+  // Filter recycling-centre records specifically for Coimbatore, Tamil Nadu
+  const coimbatoreOnlyCentres = centres.filter(c => {
+    const city = (c.city || '').toLowerCase();
+    // Do not show centres belonging to another city on this Coimbatore-specific map
+    if (city && !city.includes('coimbatore') && (city.includes('new york') || city.includes('buffalo') || city.includes('bronx') || city.includes('brooklyn'))) {
+      return false;
+    }
+    return true;
+  });
+
+  const filteredCentres = coimbatoreOnlyCentres.filter(c => {
     const s = search.toLowerCase();
     const nameMatch = (c.name || '').toLowerCase().includes(s);
     const addrMatch = (c.address || '').toLowerCase().includes(s);
@@ -160,13 +183,6 @@ export default function RecyclingCentresMap() {
   const activeCentre = selectedCentre && filteredCentres.some(c => c._id === selectedCentre._id)
     ? selectedCentre
     : (filteredCentres[0] || null);
-
-  // Default camera target: selected centre if available, else user location, else Coimbatore city centre
-  const mapCenterCoords = activeCentre?.coordinates && typeof activeCentre.coordinates.lat === 'number'
-    ? [activeCentre.coordinates.lat, activeCentre.coordinates.lng]
-    : userLocation
-    ? userLocation
-    : COIMBATORE_CENTRE;
 
   const handleGetDirections = (centre) => {
     if (!centre || !centre.coordinates) return;
@@ -501,7 +517,7 @@ export default function RecyclingCentresMap() {
                   {filteredCentres.map(c => (
                     <div
                       key={c._id}
-                      onClick={() => setSelectedCentre(c)}
+                      onClick={() => handleSelectCentre(c)}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -541,7 +557,7 @@ export default function RecyclingCentresMap() {
         {/* Interactive Leaflet Map (Centered on Coimbatore by default) */}
         <div style={{ position: 'relative', height: '100%', minHeight: 460 }}>
           <MapContainer
-            center={mapCenterCoords}
+            center={COIMBATORE_CENTRE}
             zoom={12}
             scrollWheelZoom={true}
             style={{ height: '100%', width: '100%' }}
@@ -553,7 +569,7 @@ export default function RecyclingCentresMap() {
               maxZoom={19}
             />
 
-            <MapRecenter coords={mapCenterCoords} />
+            <MapRecenter coords={mapTargetCoords} />
 
             {/* User Real Geolocation Pin (Rendered ONLY if user explicitly allowed location) */}
             {userLocation && (
@@ -579,7 +595,7 @@ export default function RecyclingCentresMap() {
                   position={[c.coordinates.lat, c.coordinates.lng]}
                   icon={createCentreIcon(c.name.split(' ')[0], isSelected)}
                   eventHandlers={{
-                    click: () => setSelectedCentre(c)
+                    click: () => handleSelectCentre(c)
                   }}
                 >
                   <Popup>
