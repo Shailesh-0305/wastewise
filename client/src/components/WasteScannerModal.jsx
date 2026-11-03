@@ -130,8 +130,8 @@ export default function WasteScannerModal({ isOpen, onClose, onSelectClassificat
               <Sparkles size={18} />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1b4332' }}>Scan Waste</h3>
-              <p style={{ fontSize: '0.72rem', color: '#64748b' }}>AI Waste Classification & Carbon Tracker</p>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary-forest)' }}>Scan Waste</h3>
+              <p style={{ fontSize: '0.72rem', color: 'var(--secondary-text)' }}>Simulated AI Classifier & Carbon Estimation</p>
             </div>
           </div>
           <button 
@@ -340,6 +340,10 @@ export default function WasteScannerModal({ isOpen, onClose, onSelectClassificat
                 <p style={{ fontSize: '0.78rem', color: '#166534', lineHeight: 1.4 }}>
                   <strong>Segregation Guideline:</strong> {result.tips}
                 </p>
+              </div>
+
+              <div style={{ fontSize: '0.72rem', color: 'var(--secondary-text)', textAlign: 'center', marginBottom: 14 }}>
+                ℹ️ Simulated AI recognition based on heuristic dataset classification.
               </div>
 
               {/* Action Button: Add Recycle Bag (Matches Image 1) */}

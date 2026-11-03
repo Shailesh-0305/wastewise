@@ -7,43 +7,57 @@ import WasteCatalogView from './components/WasteCatalogView';
 import AdminDashboard from './components/AdminDashboard';
 import WasteScannerModal from './components/WasteScannerModal';
 import PickupRequestModal from './components/PickupRequestModal';
+import AuthModal from './components/AuthModal';
 import { api } from './services/api';
-import { Home, MapPin, Calendar, Sparkles, BarChart3, BookOpen } from 'lucide-react';
+import { Home, MapPin, Sparkles, BarChart3, BookOpen } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
-  const [activeRole, setActiveRole] = useState('citizen');
+  const [currentUser, setCurrentUser] = useState(null);
   const [reports, setReports] = useState([]);
   const [userPoints, setUserPoints] = useState(1250);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isPickupOpen, setIsPickupOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authTab, setAuthTab] = useState('login');
   const [classificationPreFill, setClassificationPreFill] = useState(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchInitialData();
+    checkCurrentUser();
   }, []);
 
-  // When active role changes, auto-switch to relevant view for convenience
-  useEffect(() => {
-    if (activeRole === 'admin' || activeRole === 'driver') {
-      setActiveTab('admin');
-    } else {
-      setActiveTab('home');
+  const checkCurrentUser = async () => {
+    try {
+      const res = await api.getMe();
+      if (res.success && res.user) {
+        setCurrentUser(res.user);
+        if (res.user.ecoPoints) {
+          setUserPoints(res.user.ecoPoints);
+        }
+      } else {
+        // Default guest citizen session
+        const defaultUser = {
+          name: 'Alex Navillera',
+          email: 'alex@example.com',
+          role: 'citizen',
+          ecoPoints: 1250
+        };
+        setCurrentUser(defaultUser);
+      }
+    } catch {
+      // Keep default guest
     }
-  }, [activeRole]);
+  };
 
   const fetchInitialData = async () => {
     try {
-      setLoading(true);
       const res = await api.getReports();
       if (res.success) {
         setReports(res.reports);
       }
     } catch (e) {
       console.warn('Initial data load warning:', e);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -59,16 +73,31 @@ export default function App() {
     setActiveTab('home');
   };
 
+  const handleAuthSuccess = (user) => {
+    setCurrentUser(user);
+    if (user.ecoPoints) setUserPoints(user.ecoPoints);
+    if (user.role === 'admin') {
+      setActiveTab('admin');
+    }
+  };
+
+  const handleLogout = () => {
+    api.logout();
+    setCurrentUser(null);
+    setActiveTab('home');
+  };
+
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f4f8f5' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--main-background)' }}>
       {/* Top Main Navigation */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        activeRole={activeRole}
-        setActiveRole={setActiveRole}
+        currentUser={currentUser}
         onOpenPickup={() => { setClassificationPreFill(null); setIsPickupOpen(true); }}
         onOpenScanner={() => setIsScannerOpen(true)}
+        onOpenAuth={(tab) => { setAuthTab(tab); setIsAuthOpen(true); }}
+        onLogout={handleLogout}
         userPoints={userPoints}
       />
 
@@ -83,7 +112,7 @@ export default function App() {
             onNavigateCatalog={() => setActiveTab('catalog')}
             reports={reports}
             userPoints={userPoints}
-            activeRole={activeRole}
+            currentUser={currentUser}
           />
         )}
 
@@ -111,21 +140,21 @@ export default function App() {
         )}
       </main>
 
-      {/* Floating Mobile Bottom Navigation (Image 1 & 4 replica) */}
+      {/* Floating Mobile Bottom Navigation */}
       <div style={{
         position: 'fixed',
         bottom: 16,
         left: '50%',
         transform: 'translateX(-50%)',
-        background: 'rgba(255, 255, 255, 0.92)',
+        background: 'rgba(255, 255, 255, 0.94)',
         backdropFilter: 'blur(16px)',
-        border: '1px solid rgba(27,67,50,0.12)',
+        border: '1.5px solid var(--border-light)',
         borderRadius: 999,
-        padding: '8px 20px',
+        padding: '8px 22px',
         display: 'flex',
         alignItems: 'center',
         gap: 20,
-        boxShadow: '0 8px 32px rgba(20,40,29,0.18)',
+        boxShadow: '0 8px 32px rgba(22, 101, 52, 0.12)',
         zIndex: 90
       }}>
         {[
@@ -147,18 +176,18 @@ export default function App() {
                   width: 46,
                   height: 46,
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #1b4332 0%, #22c55e 100%)',
+                  background: 'var(--primary-forest)',
                   color: '#ffffff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginTop: -16,
-                  boxShadow: '0 6px 16px rgba(34,197,94,0.4)',
+                  boxShadow: '0 6px 16px rgba(22,101,52,0.3)',
                   transition: 'all 0.2s'
                 }}
                 title="Scan Waste with AI"
               >
-                <Sparkles size={22} />
+                <Sparkles size={20} />
               </button>
             );
           }
@@ -172,11 +201,11 @@ export default function App() {
                 flexDirection: 'column',
                 alignItems: 'center',
                 gap: 2,
-                color: isActive ? '#15803d' : '#64748b',
+                color: isActive ? 'var(--primary-forest)' : 'var(--secondary-text)',
                 transition: 'all 0.2s'
               }}
             >
-              <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+              <Icon size={19} strokeWidth={isActive ? 2.5 : 2} />
               <span style={{ fontSize: '0.66rem', fontWeight: isActive ? 800 : 500 }}>
                 {btn.label}
               </span>
@@ -185,14 +214,22 @@ export default function App() {
         })}
       </div>
 
-      {/* AI Waste-Image Classifier Modal (Image 1 Screen 3) */}
+      {/* Authentication Modal */}
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onAuthSuccess={handleAuthSuccess}
+        defaultTab={authTab}
+      />
+
+      {/* AI Waste-Image Classifier Modal */}
       <WasteScannerModal
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
         onSelectClassification={handleClassificationSelected}
       />
 
-      {/* Pickup Request Modal (Image 3 & 4) */}
+      {/* Pickup Request Modal */}
       <PickupRequestModal
         isOpen={isPickupOpen}
         onClose={() => setIsPickupOpen(false)}

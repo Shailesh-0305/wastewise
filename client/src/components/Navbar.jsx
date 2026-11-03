@@ -6,18 +6,26 @@ import {
   BarChart3, 
   Sparkles, 
   PlusCircle, 
-  Truck, 
-  ShieldCheck, 
-  User,
-  Bell
+  LogOut,
+  LogIn,
+  BookOpen
 } from 'lucide-react';
 
-export default function Navbar({ activeTab, setActiveTab, activeRole, setActiveRole, onOpenPickup, onOpenScanner, userPoints = 1250 }) {
+export default function Navbar({ 
+  activeTab, 
+  setActiveTab, 
+  currentUser, 
+  onOpenPickup, 
+  onOpenScanner, 
+  onOpenAuth, 
+  onLogout, 
+  userPoints = 1250 
+}) {
   return (
     <header style={{
-      background: 'rgba(255, 255, 255, 0.88)',
-      backdropFilter: 'blur(12px)',
-      borderBottom: '1px solid rgba(27, 67, 50, 0.08)',
+      background: 'rgba(255, 255, 255, 0.94)',
+      backdropFilter: 'blur(14px)',
+      borderBottom: '1px solid var(--border-light)',
       position: 'sticky',
       top: 0,
       zIndex: 100,
@@ -41,20 +49,21 @@ export default function Navbar({ activeTab, setActiveTab, activeRole, setActiveR
             width: 40,
             height: 40,
             borderRadius: 12,
-            background: 'linear-gradient(135deg, #1b4332 0%, #2d6a4f 100%)',
+            background: 'var(--pale-green-section)',
+            border: '1.5px solid var(--soft-leaf-green)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#22c55e',
-            boxShadow: '0 4px 12px rgba(27, 67, 50, 0.2)'
+            color: 'var(--primary-forest)',
+            boxShadow: '0 2px 8px rgba(22, 101, 52, 0.08)'
           }}>
-            <Recycle size={24} />
+            <Recycle size={22} color="var(--primary-forest)" />
           </div>
           <div>
-            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1b4332', letterSpacing: '-0.5px' }}>
-              Waste<span style={{ color: '#22c55e' }}>Wise</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary-forest)', letterSpacing: '-0.4px' }}>
+              Waste<span style={{ color: 'var(--secondary-green)' }}>Wise</span>
             </span>
-            <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#52b788', marginTop: -2, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <div style={{ fontSize: '0.66rem', fontWeight: 700, color: 'var(--secondary-text)', marginTop: -2, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
               Smart Waste Platform
             </div>
           </div>
@@ -65,15 +74,17 @@ export default function Navbar({ activeTab, setActiveTab, activeRole, setActiveR
           display: 'flex',
           alignItems: 'center',
           gap: 6,
-          background: '#eef5f0',
+          background: 'var(--very-light-mint)',
           padding: 4,
-          borderRadius: 999
+          borderRadius: 999,
+          border: '1px solid var(--border-light)'
         }}>
           {[
             { id: 'home', label: 'Citizen Portal', icon: Recycle },
             { id: 'centres', label: 'Recycling Centres', icon: MapPin },
             { id: 'schedule', label: 'Collection Schedule', icon: Calendar },
-            { id: 'admin', label: 'Admin & Fleet', icon: BarChart3 }
+            { id: 'catalog', label: 'Waste Guide', icon: BookOpen },
+            { id: 'admin', label: 'Municipal Fleet', icon: BarChart3 }
           ].map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -85,25 +96,25 @@ export default function Navbar({ activeTab, setActiveTab, activeRole, setActiveR
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
-                  padding: '8px 16px',
+                  padding: '7px 14px',
                   borderRadius: 999,
-                  fontSize: '0.86rem',
+                  fontSize: '0.84rem',
                   fontWeight: isActive ? 700 : 500,
-                  color: isActive ? '#ffffff' : '#2d6a4f',
-                  background: isActive ? '#1b4332' : 'transparent',
+                  color: isActive ? '#ffffff' : 'var(--primary-text)',
+                  background: isActive ? 'var(--primary-forest)' : 'transparent',
                   transition: 'all 0.2s ease',
-                  boxShadow: isActive ? '0 2px 8px rgba(27,67,50,0.2)' : 'none'
+                  boxShadow: isActive ? '0 2px 8px rgba(22,101,52,0.2)' : 'none'
                 }}
               >
-                <Icon size={16} color={isActive ? '#22c55e' : 'currentColor'} />
+                <Icon size={15} color={isActive ? '#ffffff' : 'var(--secondary-green)'} />
                 {tab.label}
               </button>
             );
           })}
         </nav>
 
-        {/* Action Controls & Role Switcher */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        {/* Right Action Controls & User Account */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           {/* AI Scanner Button */}
           <button
             onClick={onOpenScanner}
@@ -111,17 +122,18 @@ export default function Navbar({ activeTab, setActiveTab, activeRole, setActiveR
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              background: '#e0f5ea',
-              color: '#15803d',
-              border: '1px solid rgba(34, 197, 94, 0.3)',
-              padding: '8px 14px',
+              background: 'var(--pale-green-section)',
+              color: 'var(--primary-forest)',
+              border: '1px solid var(--soft-leaf-green)',
+              padding: '7px 13px',
               borderRadius: 999,
-              fontWeight: 600,
-              fontSize: '0.84rem'
+              fontWeight: 700,
+              fontSize: '0.82rem',
+              transition: 'all 0.2s'
             }}
-            title="Scan waste with AI image recognition"
+            title="Scan waste with AI classifier"
           >
-            <Sparkles size={16} color="#16a34a" />
+            <Sparkles size={15} color="var(--secondary-green)" />
             <span>AI Scan</span>
           </button>
 
@@ -129,56 +141,88 @@ export default function Navbar({ activeTab, setActiveTab, activeRole, setActiveR
           <button
             onClick={onOpenPickup}
             className="btn-primary"
-            style={{ padding: '8px 16px', fontSize: '0.85rem' }}
+            style={{ padding: '7px 15px', fontSize: '0.84rem' }}
           >
-            <PlusCircle size={16} />
+            <PlusCircle size={15} />
             <span>Request Pickup</span>
           </button>
 
-          {/* Eco Points Pill (Matches Image 3) */}
+          {/* Eco Points Pill */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
             gap: 6,
             background: '#ffffff',
-            border: '1.5px solid #dcfce7',
-            padding: '6px 12px',
+            border: '1.5px solid var(--soft-leaf-green)',
+            padding: '5px 12px',
             borderRadius: 999,
-            boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+            boxShadow: '0 1px 4px rgba(0,0,0,0.03)'
           }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e' }} />
-            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#166534' }}>
-              {userPoints.toLocaleString()} <span style={{ fontWeight: 500, color: '#86efac' }}>pts</span>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--secondary-green)' }} />
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--primary-forest)' }}>
+              {userPoints.toLocaleString()} <span style={{ fontWeight: 600, color: 'var(--secondary-text)' }}>pts</span>
             </span>
           </div>
 
-          {/* Role Switcher Pill */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            background: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: 999,
-            padding: '3px 8px',
-            gap: 4
-          }}>
-            <select
-              value={activeRole}
-              onChange={(e) => setActiveRole(e.target.value)}
-              style={{
-                border: 'none',
-                background: 'transparent',
-                fontWeight: 600,
-                fontSize: '0.8rem',
-                color: '#334155',
-                cursor: 'pointer'
-              }}
+          {/* User Profile / Auth State Pill */}
+          {currentUser ? (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              background: '#ffffff',
+              border: '1px solid var(--border-light)',
+              borderRadius: 999,
+              padding: '3px 10px 3px 6px',
+              gap: 8
+            }}>
+              <div style={{
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                background: 'var(--pale-green-section)',
+                border: '1px solid var(--soft-leaf-green)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--primary-forest)',
+                fontSize: '0.78rem',
+                fontWeight: 800
+              }}>
+                {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--primary-text)', lineHeight: 1.2 }}>
+                  {currentUser.name}
+                </span>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: currentUser.role === 'admin' ? '#b45309' : 'var(--secondary-green)', textTransform: 'capitalize' }}>
+                  {currentUser.role}
+                </span>
+              </div>
+              <button
+                onClick={onLogout}
+                title="Log Out"
+                style={{
+                  color: 'var(--secondary-text)',
+                  padding: 4,
+                  borderRadius: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  marginLeft: 4
+                }}
+              >
+                <LogOut size={14} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => onOpenAuth('login')}
+              className="btn-secondary"
+              style={{ padding: '6px 14px', fontSize: '0.82rem' }}
             >
-              <option value="citizen">👤 Alex (Citizen)</option>
-              <option value="driver">🚛 Travis (Driver)</option>
-              <option value="admin">🏢 Supervisor (Admin)</option>
-            </select>
-          </div>
+              <LogIn size={14} />
+              <span>Sign In</span>
+            </button>
+          )}
         </div>
       </div>
     </header>

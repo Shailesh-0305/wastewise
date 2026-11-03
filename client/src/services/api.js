@@ -1,5 +1,17 @@
 const API_BASE = 'http://localhost:5000/api';
 
+// Helper for HTTP headers with JWT Bearer token
+const getHeaders = (includeAuth = true) => {
+  const headers = { 'Content-Type': 'application/json' };
+  if (includeAuth) {
+    const token = localStorage.getItem('token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  }
+  return headers;
+};
+
 // Fallback Mock State for GitHub Pages standalone deployment
 const mockCentres = [
   {
@@ -40,6 +52,19 @@ const mockCentres = [
     imageUrl: 'https://images.unsplash.com/photo-1528323273322-d81458248d40?auto=format&fit=crop&w=600&q=80',
     rating: 4.7,
     distanceTimes: { walkMin: 15, bikeMin: 8, driveMin: 4 }
+  },
+  {
+    _id: 'c4',
+    name: 'Brooklyn Medical & Hazardous SafeDrop',
+    address: '42 Atlantic Ave, Brooklyn, NY 11201',
+    city: 'New York',
+    coordinates: { lat: 40.6925, lng: -73.9904 },
+    operatingHours: '09:00 - 17:00',
+    phone: '+1 (718) 555-0245',
+    acceptedMaterials: ['Medical'],
+    imageUrl: 'https://images.unsplash.com/photo-1584744982491-665216d95f8b?auto=format&fit=crop&w=600&q=80',
+    rating: 4.9,
+    distanceTimes: { walkMin: 30, bikeMin: 15, driveMin: 9 }
   }
 ];
 
@@ -113,25 +138,103 @@ let mockReports = [
       etaMinutes: 14
     },
     createdAt: new Date().toISOString()
+  },
+  {
+    _id: 'r3',
+    trackingId: 'WW-39211',
+    citizen: { name: 'David Miller', phone: '+1 (555) 345-9821' },
+    category: 'Organic',
+    quantity: 5,
+    unit: 'kg',
+    location: {
+      address: '24 Pine Street, Buffalo, NY',
+      coordinates: { lat: 40.8390, lng: -73.8710 }
+    },
+    status: 'Collected',
+    assignedDriver: {
+      name: 'Muhammad Gilang Pratama',
+      phone: '+1 (555) 431-8921',
+      vehiclePlate: 'TRK-GREEN-08'
+    },
+    createdAt: new Date(Date.now() - 86400000).toISOString()
   }
 ];
 
 export const api = {
   checkHealth: async () => {
     try {
-      const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(1200) });
+      const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(3000) });
       return await res.json();
     } catch {
       return { status: 'offline' };
     }
   },
 
+  // Authentication
+  register: async (userData) => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData),
+        signal: AbortSignal.timeout(5000)
+      });
+      const data = await res.json();
+      if (res.ok && data.token) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
+      return data;
+    } catch (e) {
+      return { success: false, message: e.message || 'Server connection failed' };
+    }
+  },
+
+  login: async (credentials) => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credentials),
+        signal: AbortSignal.timeout(5000)
+      });
+      const data = await res.json();
+      if (res.ok && data.token) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
+      return data;
+    } catch (e) {
+      return { success: false, message: e.message || 'Server connection failed' };
+    }
+  },
+
+  getMe: async () => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/me`, {
+        headers: getHeaders(true),
+        signal: AbortSignal.timeout(3000)
+      });
+      if (res.ok) return await res.json();
+    } catch {
+      // Fallback
+    }
+    const saved = localStorage.getItem('user');
+    return saved ? { success: true, user: JSON.parse(saved) } : { success: false };
+  },
+
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  },
+
+  // Waste Reports CRUD
   getReports: async (params = {}) => {
     try {
       const query = new URLSearchParams(params).toString();
-      const res = await fetch(`${API_BASE}/reports?${query}`, { signal: AbortSignal.timeout(1200) });
+      const res = await fetch(`${API_BASE}/reports?${query}`, { signal: AbortSignal.timeout(4000) });
       if (res.ok) return await res.json();
-    } catch (e) {
+    } catch {
       // Fallback
     }
 
@@ -149,12 +252,12 @@ export const api = {
     try {
       const res = await fetch(`${API_BASE}/reports`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(true),
         body: JSON.stringify(reportData),
-        signal: AbortSignal.timeout(1500)
+        signal: AbortSignal.timeout(5000)
       });
       if (res.ok) return await res.json();
-    } catch (e) {
+    } catch {
       // Fallback
     }
 
@@ -189,12 +292,12 @@ export const api = {
     try {
       const res = await fetch(`${API_BASE}/reports/${id}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(true),
         body: JSON.stringify({ status, note }),
-        signal: AbortSignal.timeout(1500)
+        signal: AbortSignal.timeout(4000)
       });
       if (res.ok) return await res.json();
-    } catch (e) {
+    } catch {
       // Fallback
     }
 
@@ -203,14 +306,30 @@ export const api = {
     return { success: true, report: r };
   },
 
+  assignDriver: async (id, driverData) => {
+    try {
+      const res = await fetch(`${API_BASE}/reports/${id}/assign`, {
+        method: 'PATCH',
+        headers: getHeaders(true),
+        body: JSON.stringify(driverData),
+        signal: AbortSignal.timeout(4000)
+      });
+      if (res.ok) return await res.json();
+    } catch {
+      // Fallback
+    }
+    return { success: true };
+  },
+
   deleteReport: async (id) => {
     try {
       const res = await fetch(`${API_BASE}/reports/${id}`, {
         method: 'DELETE',
-        signal: AbortSignal.timeout(1500)
+        headers: getHeaders(true),
+        signal: AbortSignal.timeout(4000)
       });
       if (res.ok) return await res.json();
-    } catch (e) {
+    } catch {
       // Fallback
     }
 
@@ -218,63 +337,82 @@ export const api = {
     return { success: true, message: 'Deleted' };
   },
 
-  getCentres: async () => {
+  // Recycling Centres
+  getCentres: async (params = {}) => {
     try {
-      const res = await fetch(`${API_BASE}/centers`, { signal: AbortSignal.timeout(1200) });
+      const query = new URLSearchParams(params).toString();
+      const res = await fetch(`${API_BASE}/centers?${query}`, { signal: AbortSignal.timeout(4000) });
       if (res.ok) return await res.json();
-    } catch {}
-    return { success: true, centres: mockCentres };
+    } catch {
+      // Fallback
+    }
+    return { success: true, count: mockCentres.length, centres: mockCentres };
   },
 
+  // Schedules
   getSchedules: async () => {
     try {
-      const res = await fetch(`${API_BASE}/schedules`, { signal: AbortSignal.timeout(1200) });
+      const res = await fetch(`${API_BASE}/schedules`, { signal: AbortSignal.timeout(4000) });
       if (res.ok) return await res.json();
-    } catch {}
+    } catch {
+      // Fallback
+    }
     return { success: true, schedules: mockSchedules };
   },
 
+  // Analytics
   getAnalytics: async () => {
     try {
-      const res = await fetch(`${API_BASE}/analytics/overview`, { signal: AbortSignal.timeout(1200) });
+      const res = await fetch(`${API_BASE}/analytics/overview`, { signal: AbortSignal.timeout(4000) });
       if (res.ok) return await res.json();
-    } catch {}
+    } catch {
+      // Fallback
+    }
 
     return {
       success: true,
       stats: {
-        totalRequests: mockReports.length + 184,
+        totalRequests: mockReports.length,
         activePickups: mockReports.filter(r => ['Reported', 'Assigned', 'In Progress'].includes(r.status)).length,
-        collectedPickups: 168,
-        totalWasteKg: 4280,
-        co2SavedKg: 3081,
-        ecoPointsTotal: 48500,
-        recyclingRate: 88.4,
+        completedPickups: mockReports.filter(r => ['Collected', 'Recycled'].includes(r.status)).length,
+        totalWasteKg: 17,
+        recyclingRate: 33.3,
         categoryDistribution: [
-          { category: 'Plastic', percentage: 38 },
-          { category: 'Organic', percentage: 24 },
-          { category: 'Electronic', percentage: 14 },
-          { category: 'Recyclable', percentage: 12 },
-          { category: 'Glass', percentage: 7 },
-          { category: 'Metal', percentage: 5 }
+          { category: 'Plastic', count: 1, weightKg: 8, percentage: 47 },
+          { category: 'Organic', count: 1, weightKg: 5, percentage: 29 },
+          { category: 'Electronic', count: 1, weightKg: 4, percentage: 24 },
+          { category: 'Medical', count: 0, weightKg: 0, percentage: 0 },
+          { category: 'Recyclable', count: 0, weightKg: 0, percentage: 0 },
+          { category: 'Metal', count: 0, weightKg: 0, percentage: 0 },
+          { category: 'Glass', count: 0, weightKg: 0, percentage: 0 }
         ],
         monthlyTrends: [
-          { month: 'May', collectedKg: 2840, recycledKg: 2410 },
-          { month: 'Jun', collectedKg: 3120, recycledKg: 2780 },
-          { month: 'Jul', collectedKg: 3590, recycledKg: 3150 },
-          { month: 'Aug', collectedKg: 3940, recycledKg: 3520 },
-          { month: 'Sep', collectedKg: 4210, recycledKg: 3840 },
-          { month: 'Oct', collectedKg: 4280, recycledKg: 3800 }
-        ]
+          { month: 'Jun', collectedKg: 120, recycledKg: 105 },
+          { month: 'Jul', collectedKg: 180, recycledKg: 160 },
+          { month: 'Aug', collectedKg: 240, recycledKg: 210 },
+          { month: 'Sep', collectedKg: 310, recycledKg: 280 },
+          { month: 'Oct', collectedKg: 390, recycledKg: 350 },
+          { month: 'Nov', collectedKg: 17, recycledKg: 5 }
+        ],
+        environmentalEstimates: {
+          co2SavedKg: 12.2,
+          treesPreserved: 0.6,
+          kwhEnergySaved: 30.6,
+          isEstimated: true,
+          notice: 'Figures estimated using EPA carbon metrics.'
+        }
       }
     };
   },
 
+  // Route Optimization (TSP)
   getOptimizedRoute: async () => {
     try {
-      const res = await fetch(`${API_BASE}/routes/collection-route`, { signal: AbortSignal.timeout(1200) });
+      const res = await fetch(`${API_BASE}/routes/collection-route`, { signal: AbortSignal.timeout(5000) });
       if (res.ok) return await res.json();
-    } catch {}
+    } catch {
+      // Fallback
+    }
 
     return {
       success: true,

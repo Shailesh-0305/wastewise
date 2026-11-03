@@ -7,23 +7,23 @@ import {
   assignDriver,
   deleteReport
 } from '../controllers/reportController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, optionalAuth, authorize } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 router.route('/')
-  .post(protect, createReport)
+  .post(optionalAuth, createReport)
   .get(getAllReports);
 
 router.route('/:id')
   .get(getReportById)
-  .put(protect, updateReportStatus)
-  .delete(protect, deleteReport);
+  .put(protect, authorize('admin', 'driver'), updateReportStatus)
+  .delete(protect, authorize('admin'), deleteReport);
 
 router.route('/:id/status')
   .patch(protect, updateReportStatus);
 
 router.route('/:id/assign')
-  .patch(protect, assignDriver);
+  .patch(protect, authorize('admin', 'driver'), assignDriver);
 
 export default router;

@@ -1,271 +1,250 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Calendar as CalendarIcon, 
   ChevronLeft, 
   ChevronRight, 
   Clock, 
-  Truck, 
   Plus, 
-  MapPin, 
-  CheckCircle2,
-  Trash2,
-  Layers
+  Leaf
 } from 'lucide-react';
-import { api } from '../services/api';
+import { ForestSilhouettes, FloatingLeaf } from './NatureDecorations';
 
 export default function CollectionScheduleView({ onRequestPickup }) {
-  const [schedules, setSchedules] = useState([]);
   const [selectedDay, setSelectedDay] = useState(8);
-  const [currentMonth, setCurrentMonth] = useState('October 2026');
-  const [loading, setLoading] = useState(true);
+  const [currentMonth] = useState('November 2026');
 
-  useEffect(() => {
-    loadSchedules();
-  }, []);
+  // Calendar matrix days 1 - 30
+  const daysInMonth = Array.from({ length: 30 }, (_, i) => i + 1);
 
-  const loadSchedules = async () => {
-    try {
-      setLoading(true);
-      const res = await api.getSchedules();
-      if (res.success) {
-        setSchedules(res.schedules);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Calendar matrix days 1 - 31
-  const daysInMonth = Array.from({ length: 31 }, (_, i) => i + 1);
-
-  // Map dates with active collection tags (ZyroBin Image 4)
+  // Map dates with active collection tags
   const getDayTags = (day) => {
-    if (day === 8) return ['organic', 'general'];
-    if (day === 12) return ['recycling'];
+    if (day === 4) return ['organic', 'general'];
+    if (day === 8) return ['organic', 'plastic'];
+    if (day === 12) return ['recyclable', 'glass'];
     if (day === 19) return ['organic'];
-    if (day === 23) return ['recycling', 'general'];
-    if (day === 28) return ['organic'];
+    if (day === 23) return ['electronic', 'metal'];
+    if (day === 28) return ['organic', 'medical'];
     return [];
   };
 
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
-      {/* Header */}
-      <div style={{
-        background: 'linear-gradient(135deg, #1b4332 0%, #2d6a4f 100%)',
-        borderRadius: 24,
-        padding: '28px',
-        color: '#ffffff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 16,
-        boxShadow: '0 10px 30px rgba(27,67,50,0.2)'
-      }}>
-        <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.15)', padding: '4px 12px', borderRadius: 999, fontSize: '0.78rem', fontWeight: 600, marginBottom: 8 }}>
-            <CalendarIcon size={14} color="#86efac" />
-            <span>ZyroBin Municipal Schedule</span>
+    <div style={{ maxWidth: 1040, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* Nature-Inspired Pale Green Header Section */}
+      <div 
+        className="pale-green-box"
+        style={{
+          padding: '28px 28px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 16
+        }}
+      >
+        <ForestSilhouettes opacity={0.14} height={130} />
+        <FloatingLeaf size={28} top={14} right={18} rotate={-10} opacity={0.2} />
+
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            background: '#ffffff',
+            border: '1.5px solid var(--soft-leaf-green)',
+            padding: '4px 12px',
+            borderRadius: 999,
+            fontSize: '0.76rem',
+            fontWeight: 700,
+            color: 'var(--primary-forest)',
+            marginBottom: 8
+          }}>
+            <CalendarIcon size={14} color="var(--secondary-green)" />
+            <span>District 4 · Municipal Operations</span>
           </div>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: 800 }}>Collection Schedule</h2>
-          <p style={{ color: '#d8f3dc', fontSize: '0.9rem' }}>Track your district waste pickup dates & upcoming municipal routes</p>
+          <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--primary-text)', letterSpacing: '-0.3px' }}>
+            Collection Schedule
+          </h2>
+          <p style={{ color: 'var(--secondary-text)', fontSize: '0.86rem', marginTop: 2 }}>
+            Track your weekly curbside pickup days and municipal segregation rounds.
+          </p>
         </div>
 
         <button
           onClick={onRequestPickup}
-          className="btn-mint"
-          style={{ padding: '12px 20px', fontSize: '0.9rem' }}
+          className="btn-primary"
+          style={{ position: 'relative', zIndex: 1, padding: '10px 20px', fontSize: '0.88rem' }}
         >
           <Plus size={16} /> Request Custom Pickup
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 24 }}>
-        {/* Monthly Calendar View (Direct Replica of Image 4) */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 22 }}>
+        {/* Monthly Calendar View */}
         <div className="card">
           {/* Calendar Month Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-            <button style={{ width: 34, height: 34, borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <ChevronLeft size={18} color="#475569" />
-            </button>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#1b4332' }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--primary-text)' }}>
               {currentMonth}
             </h3>
-            <button style={{ width: 34, height: 34, borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <ChevronRight size={18} color="#475569" />
-            </button>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--secondary-text)' }}>
+                <ChevronLeft size={16} />
+              </button>
+              <button style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--secondary-text)' }}>
+                <ChevronRight size={16} />
+              </button>
+            </div>
           </div>
 
-          {/* Day of Week Headers */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(7, 1fr)',
-            textAlign: 'center',
-            fontSize: '0.78rem',
-            fontWeight: 700,
-            color: '#64748b',
-            marginBottom: 12
-          }}>
+          {/* Weekday Names */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', fontWeight: 700, fontSize: '0.74rem', color: 'var(--secondary-text)', marginBottom: 12 }}>
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
               <div key={d}>{d}</div>
             ))}
           </div>
 
-          {/* Calendar Days Grid */}
+          {/* Calendar Days Matrix */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
-            {/* Blank leading days for month alignment */}
-            <div /> <div /> <div />
             {daysInMonth.map(day => {
-              const tags = getDayTags(day);
               const isSelected = selectedDay === day;
+              const tags = getDayTags(day);
+              const isToday = day === 3;
+
               return (
                 <div
                   key={day}
                   onClick={() => setSelectedDay(day)}
                   style={{
-                    height: 52,
-                    borderRadius: 14,
+                    height: 64,
+                    borderRadius: 12,
+                    border: isSelected ? '2px solid var(--secondary-green)' : isToday ? '1.5px solid var(--soft-leaf-green)' : '1px solid var(--border-light)',
+                    background: isSelected ? 'var(--pale-green-section)' : '#ffffff',
+                    padding: 6,
                     display: 'flex',
                     flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    justifyContent: 'space-between',
                     cursor: 'pointer',
-                    background: isSelected ? '#1b4332' : tags.length > 0 ? '#f0fdf4' : 'transparent',
-                    border: isSelected ? '2px solid #22c55e' : tags.length > 0 ? '1px solid #bbf7d0' : '1px solid transparent',
-                    color: isSelected ? '#ffffff' : '#1e293b',
-                    fontWeight: isSelected || tags.length > 0 ? 800 : 500,
-                    transition: 'all 0.2s',
-                    position: 'relative'
+                    transition: 'all 0.15s'
                   }}
                 >
-                  <span style={{ fontSize: '0.9rem' }}>{day}</span>
-                  {/* Colored Dots (Green = Organic, Blue = Recycling, Gray = General) */}
-                  {tags.length > 0 && (
-                    <div style={{ display: 'flex', gap: 3, marginTop: 3 }}>
-                      {tags.map((t, idx) => (
-                        <span
-                          key={idx}
-                          style={{
-                            width: 5,
-                            height: 5,
-                            borderRadius: '50%',
-                            background: t === 'organic' ? '#22c55e' : t === 'recycling' ? '#0284c7' : '#94a3b8'
-                          }}
-                        />
-                      ))}
-                    </div>
-                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.84rem', fontWeight: isSelected || isToday ? 800 : 500, color: isSelected ? 'var(--primary-forest)' : 'var(--primary-text)' }}>
+                      {day}
+                    </span>
+                    {isToday && (
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--secondary-green)' }} />
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                    {tags.map((t, idx) => (
+                      <span
+                        key={idx}
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          background: t === 'organic' ? '#16a34a' : t === 'plastic' ? '#0284c7' : t === 'electronic' ? '#ca8a04' : '#059669'
+                        }}
+                        title={t}
+                      />
+                    ))}
+                  </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Color Legend (Image 4 bottom) */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 20,
-            marginTop: 24,
-            paddingTop: 16,
-            borderTop: '1px solid #f1f5f9',
-            fontSize: '0.78rem',
-            color: '#64748b',
-            fontWeight: 600
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e' }} />
-              <span>Organic</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#0284c7' }} />
-              <span>Recycling</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#94a3b8' }} />
-              <span>General</span>
-            </div>
+          {/* Category Dot Legend */}
+          <div style={{ display: 'flex', gap: 16, marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border-light)', flexWrap: 'wrap' }}>
+            {[
+              { label: 'Organic Compost', color: '#16a34a' },
+              { label: 'Plastic Recyclables', color: '#0284c7' },
+              { label: 'E-Waste & Batteries', color: '#ca8a04' },
+              { label: 'Glass & Metal', color: '#059669' }
+            ].map(l => (
+              <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: 'var(--secondary-text)' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: l.color }} />
+                <span>{l.label}</span>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Upcoming Pickups Card (Matches Image 4 right card) */}
+        {/* Selected Date Schedule Sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div className="card">
-            <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1b4332', marginBottom: 14 }}>
-              Upcoming Pickups
-            </h4>
+          <div className="card" style={{ padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <Clock size={16} color="var(--secondary-green)" />
+              <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: 'var(--primary-text)' }}>
+                Schedule for Nov {selectedDay}, 2026
+              </h4>
+            </div>
 
-            {/* Next Collection Spotlight (Thu 8 Tomorrow) */}
-            <div style={{
-              background: '#f8fafc',
-              border: '1.5px solid #e2e8f0',
-              borderRadius: 18,
-              padding: '16px',
-              marginBottom: 14
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+            {getDayTags(selectedDay).length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{
-                  background: '#ffffff',
-                  border: '1.5px solid #cbd5e1',
-                  borderRadius: 12,
-                  padding: '6px 12px',
-                  textAlign: 'center'
+                  background: 'var(--pale-green-section)',
+                  border: '1px solid var(--soft-leaf-green)',
+                  borderRadius: 14,
+                  padding: '12px'
                 }}>
-                  <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>THU</div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1b4332' }}>8</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.98rem', fontWeight: 800, color: '#1b4332' }}>Tomorrow</div>
-                  <div style={{ fontSize: '0.78rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Clock size={12} /> 07:00 AM - 09:00 AM
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--secondary-green)', textTransform: 'uppercase' }}>
+                    07:00 AM - 09:00 AM
+                  </div>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--primary-forest)', marginTop: 2 }}>
+                    Zone North Scheduled Round
+                  </div>
+                  <div style={{ fontSize: '0.76rem', color: 'var(--secondary-text)', marginTop: 4 }}>
+                    Curbside bins collected by Muhammad Gilang Pratama (TRK-GREEN-08).
                   </div>
                 </div>
-              </div>
 
-              {/* Badges */}
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-                <span className="badge badge-organic">🍏 Organic Waste</span>
-                <span className="badge badge-metal">🗑️ General Waste</span>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {getDayTags(selectedDay).map(t => (
+                    <span key={t} className={`badge badge-${t}`}>
+                      {t}
+                    </span>
+                  ))}
+                </div>
               </div>
-
-              <div style={{ fontSize: '0.76rem', color: '#64748b', borderTop: '1px solid #e2e8f0', paddingTop: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Truck size={14} color="#15803d" />
-                <span>Assigned: Muhammad Gilang Pratama (TRK-08)</span>
-              </div>
-            </div>
-
-            {/* Other Scheduled Rounds */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {schedules.slice(1).map(s => (
-                <div
-                  key={s._id}
-                  style={{
-                    padding: '12px 14px',
-                    borderRadius: 14,
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                  }}
+            ) : (
+              <div style={{ textAlign: 'center', padding: '20px 10px', color: 'var(--secondary-text)', fontSize: '0.84rem' }}>
+                <Leaf size={24} color="var(--soft-leaf-green)" style={{ margin: '0 auto 8px' }} />
+                <p>No standard municipal rounds on this date.</p>
+                <p style={{ fontSize: '0.76rem', marginTop: 4 }}>
+                  You can request a direct on-demand pickup below.
+                </p>
+                <button
+                  onClick={onRequestPickup}
+                  className="btn-primary"
+                  style={{ marginTop: 12, padding: '7px 16px', fontSize: '0.8rem' }}
                 >
-                  <div>
-                    <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#1b4332' }}>
-                      {s.title}
-                    </div>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                      {s.dayOfWeek} • {s.timeWindow}
-                    </div>
-                  </div>
-                  <span className="badge badge-recyclable" style={{ fontSize: '0.7rem' }}>
-                    {s.categories[0]}
-                  </span>
-                </div>
-              ))}
-            </div>
+                  Book On-Demand
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* District Information */}
+          <div className="card" style={{ padding: '20px' }}>
+            <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--primary-text)', marginBottom: 8 }}>
+              Curbside Collection Rules
+            </h4>
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.78rem', color: 'var(--secondary-text)' }}>
+              <li style={{ display: 'flex', gap: 6 }}>
+                <span style={{ color: 'var(--secondary-green)' }}>✓</span>
+                <span>Place segregated bins outside by 06:45 AM.</span>
+              </li>
+              <li style={{ display: 'flex', gap: 6 }}>
+                <span style={{ color: 'var(--secondary-green)' }}>✓</span>
+                <span>Rinse food residue from plastic containers and tins.</span>
+              </li>
+              <li style={{ display: 'flex', gap: 6 }}>
+                <span style={{ color: 'var(--secondary-green)' }}>✓</span>
+                <span>Keep e-waste and batteries in sealed clear pouches.</span>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
