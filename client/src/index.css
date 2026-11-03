@@ -315,3 +315,41 @@ input, select, textarea {
   .grid-4 { grid-template-columns: 1fr; }
   .grid-2 { grid-template-columns: 1fr; }
 }
+
+/* Smooth Scrolling & Green Journey Landing Page Styles */
+html {
+  scroll-behavior: smooth;
+}
+
+@keyframes truckWheelSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.truck-wheel {
+  transform-origin: center;
+  animation: truckWheelSpin 1.6s linear infinite;
+}
+
+@media (max-width: 768px) {
+  .hidden-mobile {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .truck-wheel {
+    animation: none !important;
+  }
+}
+

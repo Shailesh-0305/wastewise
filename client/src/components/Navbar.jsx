@@ -7,7 +7,9 @@ import {
   PlusCircle, 
   LogOut,
   LogIn,
-  BookOpen
+  BookOpen,
+  UserPlus,
+  Compass
 } from 'lucide-react';
 
 export default function Navbar({ 
@@ -19,13 +21,29 @@ export default function Navbar({
   onLogout, 
   userPoints = 0 
 }) {
-  const navTabs = [
+  // Navigation tabs vary slightly based on auth state, while maintaining full accessibility
+  const navTabs = currentUser ? [
     { id: 'home', label: 'Citizen Portal', icon: Recycle },
+    { id: 'landing', label: 'The Green Journey', icon: Compass },
     { id: 'centres', label: 'Recycling Centres', icon: MapPin },
     { id: 'schedule', label: 'Collection Schedule', icon: Calendar },
     { id: 'catalog', label: 'Waste Guide', icon: BookOpen },
-    ...(currentUser?.role === 'admin' ? [{ id: 'admin', label: 'Municipal Fleet', icon: BarChart3 }] : [])
+    ...(currentUser.role === 'admin' ? [{ id: 'admin', label: 'Municipal Fleet', icon: BarChart3 }] : [])
+  ] : [
+    { id: 'landing', label: 'Our Journey', icon: Compass },
+    { id: 'centres', label: 'Recycling Centres', icon: MapPin },
+    { id: 'schedule', label: 'Collection Schedule', icon: Calendar },
+    { id: 'catalog', label: 'Waste Guide', icon: BookOpen }
   ];
+
+  const handleLogoClick = () => {
+    if (currentUser) {
+      setActiveTab('home');
+    } else {
+      setActiveTab('landing');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   return (
     <header style={{
@@ -48,7 +66,7 @@ export default function Navbar({
       }}>
         {/* Brand Logo */}
         <div 
-          onClick={() => setActiveTab('home')}
+          onClick={handleLogoClick}
           style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
         >
           <div style={{
@@ -70,12 +88,12 @@ export default function Navbar({
               Waste<span style={{ color: 'var(--secondary-green)' }}>Wise</span>
             </span>
             <div style={{ fontSize: '0.66rem', fontWeight: 700, color: 'var(--secondary-text)', marginTop: -2, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-              Smart Waste Platform
+              Coimbatore Platform
             </div>
           </div>
         </div>
 
-        {/* Navigation Tabs (Admin tab shown only to authenticated Admins) */}
+        {/* Navigation Tabs */}
         <nav style={{
           display: 'flex',
           alignItems: 'center',
@@ -91,7 +109,12 @@ export default function Navbar({
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  if (tab.id === 'landing') {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -197,14 +220,30 @@ export default function Navbar({
               </button>
             </div>
           ) : (
-            <button
-              onClick={() => onOpenAuth('login')}
-              className="btn-secondary"
-              style={{ padding: '6px 14px', fontSize: '0.82rem' }}
-            >
-              <LogIn size={14} />
-              <span>Sign In</span>
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button
+                onClick={() => onOpenAuth('login')}
+                className="btn-secondary"
+                style={{ padding: '6px 14px', fontSize: '0.82rem' }}
+              >
+                <LogIn size={14} />
+                <span>Sign In</span>
+              </button>
+
+              <button
+                onClick={() => onOpenAuth('register')}
+                className="btn-primary"
+                style={{
+                  padding: '6px 14px',
+                  fontSize: '0.82rem',
+                  background: 'var(--secondary-green)',
+                  borderColor: 'var(--secondary-green)'
+                }}
+              >
+                <UserPlus size={14} />
+                <span>Join WasteWise</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
