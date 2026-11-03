@@ -1,18 +1,18 @@
 import WasteReport from '../models/WasteReport.js';
-import { inMemoryDB } from '../store/inMemoryStore.js';
 import mongoose from 'mongoose';
 
 const ALL_CATEGORIES = ['Plastic', 'Organic', 'Electronic', 'Medical', 'Recyclable', 'Metal', 'Glass'];
 
 export const getAnalyticsOverview = async (req, res) => {
   try {
-    let reports = [];
-
-    if (mongoose.connection.readyState === 1) {
-      reports = await WasteReport.find().lean();
-    } else {
-      reports = inMemoryDB.reports;
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        success: false,
+        message: 'Database connection offline. Please check MongoDB Atlas connection.'
+      });
     }
+
+    const reports = await WasteReport.find().lean();
 
     const totalRequests = reports.length;
     const pendingPickups = reports.filter(r => ['Reported', 'Confirmed', 'Assigned', 'In Progress'].includes(r.status)).length;
@@ -28,10 +28,23 @@ export const getAnalyticsOverview = async (req, res) => {
     };
 
     let totalWasteKg = 0;
+    let totalCollectedWasteKg = 0;
+    let totalRecycledWasteKg = 0;
+
     reports.forEach(r => {
-      totalWasteKg += calculateWeight(r.quantity, r.unit);
+      const w = calculateWeight(r.quantity, r.unit);
+      totalWasteKg += w;
+      if (['Collected', 'Recycled'].includes(r.status)) {
+        totalCollectedWasteKg += w;
+      }
+      if (r.status === 'Recycled') {
+        totalRecycledWasteKg += w;
+      }
     });
+
     totalWasteKg = Math.round(totalWasteKg * 10) / 10;
+    totalCollectedWasteKg = Math.round(totalCollectedWasteKg * 10) / 10;
+    totalRecycledWasteKg = Math.round(totalRecycledWasteKg * 10) / 10;
 
     // Category distribution directly from database records
     const categoryTotals = {};
@@ -57,17 +70,18 @@ export const getAnalyticsOverview = async (req, res) => {
       };
     });
 
-    // Environmental impact estimates
-    // Standard EPA factors: ~0.72 kg CO2 saved per kg recycled waste, 1 tree absorbs ~22kg CO2/year
-    const estimatedCO2SavedKg = Math.round(totalWasteKg * 0.72 * 10) / 10;
+    // Environmental impact estimates calculated ONLY on diverted/collected waste
+    // Standard EPA factors: ~0.72 kg CO2 saved per kg recycled waste; 1 mature tree absorbs ~22kg CO2/year; 1.8 kWh energy saved/kg
+    const estimatedCO2SavedKg = Math.round(totalCollectedWasteKg * 0.72 * 10) / 10;
     const estimatedTreesPreserved = Math.round((estimatedCO2SavedKg / 22) * 10) / 10;
-    const estimatedKWhEnergySaved = Math.round(totalWasteKg * 1.8 * 10) / 10;
+    const estimatedKWhEnergySaved = Math.round(totalCollectedWasteKg * 1.8 * 10) / 10;
 
-    // Recycling rate calculation
-    const nonCancelled = totalRequests - cancelledPickups;
-    const recyclingRate = nonCancelled > 0 ? Math.min(100, Math.round((completedPickups / nonCancelled) * 100 * 10) / 10) : 0;
+    // Recycling rate strictly as (Total recycled waste quantity / Total collected waste quantity) * 100
+    const recyclingRate = totalCollectedWasteKg > 0
+      ? Math.min(100, Math.round((totalRecycledWasteKg / totalCollectedWasteKg) * 100 * 10) / 10)
+      : 0;
 
-    // Monthly Trends for past 6 months
+    // Monthly Trends for past 6 months - only include collected/recycled reports
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const now = new Date();
     const monthlyTrends = [];
@@ -78,10 +92,11 @@ export const getAnalyticsOverview = async (req, res) => {
       const yr = d.getFullYear();
       const mName = monthNames[mIdx];
 
-      // Filter reports in this calendar month
+      // Filter reports in this calendar month that reached Collected or Recycled stage
       const monthReports = reports.filter(r => {
         const rDate = new Date(r.createdAt || Date.now());
-        return rDate.getMonth() === mIdx && rDate.getFullYear() === yr;
+        const isThisMonth = rDate.getMonth() === mIdx && rDate.getFullYear() === yr;
+        return isThisMonth && ['Collected', 'Recycled'].includes(r.status);
       });
 
       let collectedKg = 0;
@@ -89,7 +104,7 @@ export const getAnalyticsOverview = async (req, res) => {
       monthReports.forEach(r => {
         const w = calculateWeight(r.quantity, r.unit);
         collectedKg += w;
-        if (['Collected', 'Recycled'].includes(r.status)) {
+        if (r.status === 'Recycled') {
           recycledKg += w;
         }
       });
@@ -97,8 +112,8 @@ export const getAnalyticsOverview = async (req, res) => {
       monthlyTrends.push({
         month: mName,
         year: yr,
-        collectedKg: Math.round(collectedKg),
-        recycledKg: Math.round(recycledKg),
+        collectedKg: Math.round(collectedKg * 10) / 10,
+        recycledKg: Math.round(recycledKg * 10) / 10,
         count: monthReports.length
       });
     }
@@ -112,6 +127,8 @@ export const getAnalyticsOverview = async (req, res) => {
         completedPickups,
         cancelledPickups,
         totalWasteKg,
+        totalCollectedWasteKg,
+        totalRecycledWasteKg,
         recyclingRate,
         categoryDistribution,
         monthlyTrends,
@@ -120,7 +137,8 @@ export const getAnalyticsOverview = async (req, res) => {
           treesPreserved: estimatedTreesPreserved,
           kwhEnergySaved: estimatedKWhEnergySaved,
           isEstimated: true,
-          notice: 'Figures calculated from recorded waste metrics using standard EPA lifecycle carbon factors.'
+          methodology: 'Heuristic estimate calculated on collected and diverted municipal waste',
+          notice: 'Heuristic figures calculated solely on diverted/collected waste using standard EPA lifecycle carbon factors (0.72 kg CO2/kg waste; 22 kg CO2/tree/yr; 1.8 kWh/kg waste).'
         }
       }
     });

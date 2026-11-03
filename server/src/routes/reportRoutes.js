@@ -3,27 +3,28 @@ import {
   createReport,
   getAllReports,
   getReportById,
+  updateReport,
   updateReportStatus,
   assignDriver,
   deleteReport
 } from '../controllers/reportController.js';
-import { protect, optionalAuth, authorize } from '../middleware/authMiddleware.js';
+import { protect, authorize } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 router.route('/')
-  .post(optionalAuth, createReport)
-  .get(getAllReports);
+  .post(protect, createReport)
+  .get(protect, getAllReports);
 
 router.route('/:id')
-  .get(getReportById)
-  .put(protect, authorize('admin', 'driver'), updateReportStatus)
+  .get(protect, getReportById)
+  .put(protect, updateReport)
   .delete(protect, authorize('admin'), deleteReport);
 
 router.route('/:id/status')
   .patch(protect, updateReportStatus);
 
 router.route('/:id/assign')
-  .patch(protect, authorize('admin', 'driver'), assignDriver);
+  .patch(protect, authorize('admin'), assignDriver);
 
 export default router;

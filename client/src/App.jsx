@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from './components/Navbar';
 import CitizenHome from './components/CitizenHome';
 import RecyclingCentresMap from './components/RecyclingCentresMap';
@@ -9,81 +9,112 @@ import WasteScannerModal from './components/WasteScannerModal';
 import PickupRequestModal from './components/PickupRequestModal';
 import AuthModal from './components/AuthModal';
 import { api } from './services/api';
-import { Home, MapPin, Sparkles, BarChart3, BookOpen } from 'lucide-react';
+import { Home, MapPin, Sparkles, BarChart3, BookOpen, ShieldAlert, LogIn } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [currentUser, setCurrentUser] = useState(null);
   const [reports, setReports] = useState([]);
-  const [userPoints, setUserPoints] = useState(1250);
+  const [userPoints, setUserPoints] = useState(0);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isPickupOpen, setIsPickupOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authTab, setAuthTab] = useState('login');
   const [classificationPreFill, setClassificationPreFill] = useState(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-  useEffect(() => {
-    fetchInitialData();
-    checkCurrentUser();
+  const fetchReports = useCallback(async () => {
+    try {
+      const res = await api.getReports();
+      if (res.success && Array.isArray(res.reports)) {
+        setReports(res.reports);
+      } else {
+        setReports([]);
+      }
+    } catch (e) {
+      console.warn('Initial data load warning:', e);
+      setReports([]);
+    }
   }, []);
 
-  const checkCurrentUser = async () => {
+  const checkCurrentUser = useCallback(async () => {
+    setIsCheckingAuth(true);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setCurrentUser(null);
+      setUserPoints(0);
+      setIsCheckingAuth(false);
+      return;
+    }
+
     try {
       const res = await api.getMe();
       if (res.success && res.user) {
         setCurrentUser(res.user);
-        if (res.user.ecoPoints) {
-          setUserPoints(res.user.ecoPoints);
-        }
+        setUserPoints(res.user.ecoPoints || 0);
+        fetchReports();
       } else {
-        // Default guest citizen session
-        const defaultUser = {
-          name: 'Alex Navillera',
-          email: 'alex@example.com',
-          role: 'citizen',
-          ecoPoints: 1250
-        };
-        setCurrentUser(defaultUser);
+        // Token invalid or expired
+        api.logout();
+        setCurrentUser(null);
+        setUserPoints(0);
       }
     } catch {
-      // Keep default guest
+      api.logout();
+      setCurrentUser(null);
+      setUserPoints(0);
+    } finally {
+      setIsCheckingAuth(false);
     }
-  };
+  }, [fetchReports]);
 
-  const fetchInitialData = async () => {
-    try {
-      const res = await api.getReports();
-      if (res.success) {
-        setReports(res.reports);
-      }
-    } catch (e) {
-      console.warn('Initial data load warning:', e);
+  useEffect(() => {
+    checkCurrentUser();
+  }, [checkCurrentUser]);
+
+  // Handle pickup request opening: requires authentication
+  const handleOpenPickup = () => {
+    if (!currentUser) {
+      setAuthTab('login');
+      setIsAuthOpen(true);
+      return;
     }
+    setClassificationPreFill(null);
+    setIsPickupOpen(true);
   };
 
   const handleClassificationSelected = (item) => {
     setClassificationPreFill(item);
-    setUserPoints(prev => prev + item.ecoPoints);
+    if (!currentUser) {
+      setAuthTab('login');
+      setIsAuthOpen(true);
+      return;
+    }
     setIsPickupOpen(true);
   };
 
   const handleReportCreated = (newReport) => {
     setReports(prev => [newReport, ...prev]);
-    setUserPoints(prev => prev + 25);
+    setUserPoints(prev => prev + (newReport.aiClassification?.ecoPointsEarned || 25));
     setActiveTab('home');
   };
 
   const handleAuthSuccess = (user) => {
     setCurrentUser(user);
-    if (user.ecoPoints) setUserPoints(user.ecoPoints);
+    if (user.ecoPoints !== undefined) setUserPoints(user.ecoPoints);
+    fetchReports();
     if (user.role === 'admin') {
       setActiveTab('admin');
+    } else {
+      setActiveTab('home');
     }
   };
 
   const handleLogout = () => {
     api.logout();
     setCurrentUser(null);
+    setUserPoints(0);
+    setReports([]);
     setActiveTab('home');
   };
 
@@ -94,7 +125,7 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         currentUser={currentUser}
-        onOpenPickup={() => { setClassificationPreFill(null); setIsPickupOpen(true); }}
+        onOpenPickup={handleOpenPickup}
         onOpenScanner={() => setIsScannerOpen(true)}
         onOpenAuth={(tab) => { setAuthTab(tab); setIsAuthOpen(true); }}
         onLogout={handleLogout}
@@ -105,7 +136,7 @@ export default function App() {
       <main style={{ flex: 1, padding: '24px 20px 80px', maxWidth: 1300, width: '100%', margin: '0 auto' }}>
         {activeTab === 'home' && (
           <CitizenHome
-            onOpenPickup={() => { setClassificationPreFill(null); setIsPickupOpen(true); }}
+            onOpenPickup={handleOpenPickup}
             onOpenScanner={() => setIsScannerOpen(true)}
             onNavigateCentres={() => setActiveTab('centres')}
             onNavigateSchedule={() => setActiveTab('schedule')}
@@ -122,21 +153,71 @@ export default function App() {
 
         {activeTab === 'schedule' && (
           <CollectionScheduleView
-            onRequestPickup={() => { setClassificationPreFill(null); setIsPickupOpen(true); }}
+            onRequestPickup={handleOpenPickup}
           />
         )}
 
         {activeTab === 'catalog' && (
           <WasteCatalogView
             onOpenScanner={() => setIsScannerOpen(true)}
-            onRequestPickup={() => { setClassificationPreFill(null); setIsPickupOpen(true); }}
+            onRequestPickup={handleOpenPickup}
           />
         )}
 
         {activeTab === 'admin' && (
-          <AdminDashboard
-            onRefreshNeeded={fetchInitialData}
-          />
+          currentUser?.role === 'admin' ? (
+            <AdminDashboard
+              onRefreshNeeded={fetchReports}
+            />
+          ) : (
+            <div style={{
+              maxWidth: 580,
+              margin: '60px auto',
+              background: '#ffffff',
+              border: '1.5px solid var(--border-light)',
+              borderRadius: 24,
+              padding: '40px 32px',
+              textAlign: 'center',
+              boxShadow: '0 8px 30px rgba(0,0,0,0.04)'
+            }}>
+              <div style={{
+                width: 54,
+                height: 54,
+                borderRadius: '50%',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px',
+                color: '#dc2626'
+              }}>
+                <ShieldAlert size={28} />
+              </div>
+              <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--primary-text)' }}>
+                Municipal Fleet Access Restricted
+              </h3>
+              <p style={{ fontSize: '0.86rem', color: 'var(--secondary-text)', marginTop: 8, lineHeight: 1.5 }}>
+                The Municipal Admin & Fleet Route Optimization dashboard is restricted to authorized municipal officers.
+              </p>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 22 }}>
+                <button
+                  onClick={() => { setAuthTab('login'); setIsAuthOpen(true); }}
+                  className="btn-primary"
+                  style={{ padding: '9px 20px', fontSize: '0.86rem' }}
+                >
+                  <LogIn size={15} /> Sign In as Admin
+                </button>
+                <button
+                  onClick={() => setActiveTab('home')}
+                  className="btn-secondary"
+                  style={{ padding: '9px 18px', fontSize: '0.86rem' }}
+                >
+                  Return to Home
+                </button>
+              </div>
+            </div>
+          )
         )}
       </main>
 
@@ -162,7 +243,7 @@ export default function App() {
           { id: 'catalog', label: 'Guide', icon: BookOpen },
           { id: 'scanner', label: 'AI Scan', icon: Sparkles, isSpecial: true },
           { id: 'centres', label: 'Map', icon: MapPin },
-          { id: 'admin', label: 'Admin', icon: BarChart3 }
+          ...(currentUser?.role === 'admin' ? [{ id: 'admin', label: 'Admin', icon: BarChart3 }] : [])
         ].map(btn => {
           const Icon = btn.icon;
           const isActive = activeTab === btn.id;
@@ -183,7 +264,9 @@ export default function App() {
                   justifyContent: 'center',
                   marginTop: -16,
                   boxShadow: '0 6px 16px rgba(22,101,52,0.3)',
-                  transition: 'all 0.2s'
+                  transition: 'all 0.2s',
+                  border: 'none',
+                  cursor: 'pointer'
                 }}
                 title="Scan Waste with AI"
               >
@@ -202,7 +285,10 @@ export default function App() {
                 alignItems: 'center',
                 gap: 2,
                 color: isActive ? 'var(--primary-forest)' : 'var(--secondary-text)',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer'
               }}
             >
               <Icon size={19} strokeWidth={isActive ? 2.5 : 2} />

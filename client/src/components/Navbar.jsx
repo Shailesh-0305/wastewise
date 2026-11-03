@@ -21,6 +21,14 @@ export default function Navbar({
   onLogout, 
   userPoints = 1250 
 }) {
+  const navTabs = [
+    { id: 'home', label: 'Citizen Portal', icon: Recycle },
+    { id: 'centres', label: 'Recycling Centres', icon: MapPin },
+    { id: 'schedule', label: 'Collection Schedule', icon: Calendar },
+    { id: 'catalog', label: 'Waste Guide', icon: BookOpen },
+    ...(currentUser?.role === 'admin' ? [{ id: 'admin', label: 'Municipal Fleet', icon: BarChart3 }] : [])
+  ];
+
   return (
     <header style={{
       background: 'rgba(255, 255, 255, 0.94)',
@@ -69,7 +77,7 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* Navigation Tabs */}
+        {/* Navigation Tabs (Admin tab shown only to authenticated Admins) */}
         <nav style={{
           display: 'flex',
           alignItems: 'center',
@@ -79,13 +87,7 @@ export default function Navbar({
           borderRadius: 999,
           border: '1px solid var(--border-light)'
         }}>
-          {[
-            { id: 'home', label: 'Citizen Portal', icon: Recycle },
-            { id: 'centres', label: 'Recycling Centres', icon: MapPin },
-            { id: 'schedule', label: 'Collection Schedule', icon: Calendar },
-            { id: 'catalog', label: 'Waste Guide', icon: BookOpen },
-            { id: 'admin', label: 'Municipal Fleet', icon: BarChart3 }
-          ].map(tab => {
+          {navTabs.map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
@@ -207,7 +209,10 @@ export default function Navbar({
                   borderRadius: 6,
                   display: 'flex',
                   alignItems: 'center',
-                  marginLeft: 4
+                  marginLeft: 4,
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer'
                 }}
               >
                 <LogOut size={14} />

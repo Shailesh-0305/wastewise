@@ -1,10 +1,17 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'wastewise_secret_key_2026_super_secure';
+const getJwtSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('Server configuration error: JWT_SECRET environment variable is missing.');
+  }
+  return secret;
+};
 
 /**
  * Strict authentication middleware.
- * Rejects requests with missing or invalid JWT tokens.
+ * Verifies JWT token and attaches user payload to req.user.
+ * Rejects requests with missing, invalid, or expired tokens with 401 Unauthorized.
  */
 export const protect = (req, res, next) => {
   let token;
@@ -16,26 +23,27 @@ export const protect = (req, res, next) => {
   if (!token) {
     return res.status(401).json({
       success: false,
-      message: 'Not authorized: Access token is missing'
+      message: 'Not authorized: Access token is missing. Please sign in.'
     });
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, getJwtSecret());
     req.user = decoded;
     next();
   } catch (error) {
     return res.status(401).json({
       success: false,
-      message: 'Not authorized: Invalid or expired token'
+      message: error.name === 'TokenExpiredError' 
+        ? 'Session expired: Please sign in again.' 
+        : 'Not authorized: Invalid token.'
     });
   }
 };
 
 /**
  * Optional authentication middleware.
- * Attaches decoded user payload if a valid Bearer token is provided,
- * but allows unauthenticated requests to continue safely.
+ * Decodes Bearer token if present without rejecting anonymous requests.
  */
 export const optionalAuth = (req, res, next) => {
   let token;
@@ -45,7 +53,7 @@ export const optionalAuth = (req, res, next) => {
 
   if (token) {
     try {
-      const decoded = jwt.verify(token, JWT_SECRET);
+      const decoded = jwt.verify(token, getJwtSecret());
       req.user = decoded;
     } catch {
       // Ignore invalid token on optional routes
@@ -56,14 +64,14 @@ export const optionalAuth = (req, res, next) => {
 
 /**
  * Role-based authorization middleware.
- * Restricts access to specified user roles.
+ * Verifies that the authenticated user possesses one of the required roles.
  */
 export const authorize = (...roles) => {
   return (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
-        message: `User role '${req.user?.role || 'anonymous'}' is not authorized to access this resource`
+        message: `Forbidden: User role '${req.user?.role || 'anonymous'}' is not authorized to access this resource.`
       });
     }
     next();

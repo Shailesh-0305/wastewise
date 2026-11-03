@@ -8,7 +8,10 @@ import {
   Search, 
   Compass, 
   Leaf, 
-  RotateCw
+  RotateCw,
+  Edit3,
+  X,
+  Save
 } from 'lucide-react';
 import { api } from '../services/api';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
@@ -20,6 +23,7 @@ import { ForestSilhouettes, FloatingLeaf } from './NatureDecorations';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 const ALL_CATEGORIES = ['All', 'Plastic', 'Organic', 'Electronic', 'Medical', 'Recyclable', 'Metal', 'Glass'];
+const CANONICAL_CATEGORIES = ['Plastic', 'Organic', 'Electronic', 'Medical', 'Recyclable', 'Metal', 'Glass'];
 const ALL_STATUSES = ['All', 'Reported', 'Confirmed', 'Assigned', 'In Progress', 'Collected', 'Recycled', 'Cancelled'];
 
 // Custom waypoint pin icons
@@ -54,6 +58,18 @@ export default function AdminDashboard({ onRefreshNeeded }) {
   const [loading, setLoading] = useState(true);
   const [optimizing, setOptimizing] = useState(false);
 
+  // Edit Report Modal State (Full CRUD Edit)
+  const [editingReport, setEditingReport] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    category: 'Plastic',
+    subCategory: '',
+    quantity: 1,
+    unit: 'bags',
+    address: '',
+    notes: ''
+  });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
@@ -66,8 +82,12 @@ export default function AdminDashboard({ onRefreshNeeded }) {
         api.getAnalytics()
       ]);
 
-      if (reportsRes.success) setReports(reportsRes.reports);
-      if (analyticsRes.success) setAnalytics(analyticsRes.stats);
+      if (reportsRes.success && Array.isArray(reportsRes.reports)) {
+        setReports(reportsRes.reports);
+      }
+      if (analyticsRes.success && analyticsRes.stats) {
+        setAnalytics(analyticsRes.stats);
+      }
     } catch (e) {
       console.error('Failed to load admin data:', e);
     } finally {
@@ -81,11 +101,12 @@ export default function AdminDashboard({ onRefreshNeeded }) {
 
   const handleStatusChange = async (reportId, newStatus) => {
     try {
-      const res = await api.updateReportStatus(reportId, newStatus, `Municipal staff updated status to ${newStatus}`);
+      const res = await api.updateReportStatus(reportId, newStatus, `Municipal supervisor set status to ${newStatus}`);
       if (res.success) {
-        setReports(prev => prev.map(r => (r._id === reportId || r.trackingId === reportId) ? res.report : r));
         loadData();
         if (onRefreshNeeded) onRefreshNeeded();
+      } else {
+        alert(res.message || 'Failed to update status');
       }
     } catch (e) {
       alert(e.message);
@@ -93,17 +114,52 @@ export default function AdminDashboard({ onRefreshNeeded }) {
   };
 
   const handleDeleteReport = async (reportId) => {
-    if (window.confirm('Are you sure you want to delete this pickup record? (CRUD Delete)')) {
+    if (window.confirm('Are you sure you want to delete this pickup record? (CRUD Delete from MongoDB)')) {
       try {
         const res = await api.deleteReport(reportId);
         if (res.success) {
-          setReports(prev => prev.filter(r => r._id !== reportId && r.trackingId !== reportId));
           loadData();
           if (onRefreshNeeded) onRefreshNeeded();
+        } else {
+          alert(res.message || 'Failed to delete record');
         }
       } catch (e) {
         alert(e.message);
       }
+    }
+  };
+
+  const handleOpenEdit = (report) => {
+    setEditingReport(report);
+    setEditFormData({
+      category: report.category || 'Plastic',
+      subCategory: report.subCategory || '',
+      quantity: report.quantity || 1,
+      unit: report.unit || 'bags',
+      address: report.location?.address || '',
+      notes: report.notes || ''
+    });
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editingReport) return;
+
+    try {
+      setIsSavingEdit(true);
+      const reportId = editingReport._id || editingReport.trackingId;
+      const res = await api.updateReport(reportId, editFormData);
+      if (res.success) {
+        setEditingReport(null);
+        loadData();
+        if (onRefreshNeeded) onRefreshNeeded();
+      } else {
+        alert(res.message || 'Failed to update report');
+      }
+    } catch (err) {
+      alert(err.message || 'Update failed');
+    } finally {
+      setIsSavingEdit(false);
     }
   };
 
@@ -113,6 +169,8 @@ export default function AdminDashboard({ onRefreshNeeded }) {
       const res = await api.getOptimizedRoute();
       if (res.success) {
         setOptimizedRoute(res);
+      } else {
+        alert(res.message || 'Failed to optimize route');
       }
     } catch (e) {
       alert(e.message);
@@ -130,8 +188,8 @@ export default function AdminDashboard({ onRefreshNeeded }) {
   });
 
   // Chart 1: Category Distribution Doughnut
-  const categoryLabels = analytics?.categoryDistribution?.map(c => c.category) || ALL_CATEGORIES.slice(1);
-  const categoryCounts = analytics?.categoryDistribution?.map(c => c.weightKg || c.count) || [8, 5, 4, 0, 0, 0, 0];
+  const categoryLabels = analytics?.categoryDistribution?.map(c => c.category) || CANONICAL_CATEGORIES;
+  const categoryCounts = analytics?.categoryDistribution?.map(c => c.weightKg || c.count) || [0, 0, 0, 0, 0, 0, 0];
   const doughnutData = {
     labels: categoryLabels,
     datasets: [
@@ -154,8 +212,8 @@ export default function AdminDashboard({ onRefreshNeeded }) {
 
   // Chart 2: Monthly Trends Bar Chart
   const monthlyLabels = analytics?.monthlyTrends?.map(m => m.month) || ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'];
-  const monthlyCollected = analytics?.monthlyTrends?.map(m => m.collectedKg) || [120, 180, 240, 310, 390, 17];
-  const monthlyRecycled = analytics?.monthlyTrends?.map(m => m.recycledKg) || [105, 160, 210, 280, 350, 5];
+  const monthlyCollected = analytics?.monthlyTrends?.map(m => m.collectedKg) || [0, 0, 0, 0, 0, 0];
+  const monthlyRecycled = analytics?.monthlyTrends?.map(m => m.recycledKg) || [0, 0, 0, 0, 0, 0];
   const barData = {
     labels: monthlyLabels,
     datasets: [
@@ -249,20 +307,20 @@ export default function AdminDashboard({ onRefreshNeeded }) {
             {analytics?.totalRequests ?? reports.length}
           </div>
           <div style={{ fontSize: '0.74rem', color: 'var(--secondary-text)', marginTop: 4 }}>
-            Active in database: {reports.length} loaded
+            All-time citizen submissions
           </div>
         </div>
 
         <div className="card" style={{ padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--secondary-text)', fontSize: '0.78rem', fontWeight: 700 }}>
-            <span>PENDING PICKUPS</span>
+            <span>ACTIVE / PENDING</span>
             <Clock size={16} color="#b45309" />
           </div>
           <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#b45309', marginTop: 4 }}>
             {analytics?.pendingPickups ?? reports.filter(r => ['Reported', 'Confirmed', 'Assigned', 'In Progress'].includes(r.status)).length}
           </div>
           <div style={{ fontSize: '0.74rem', color: 'var(--secondary-text)', marginTop: 4 }}>
-            Awaiting pickup / driver transit
+            Pending collection rounds
           </div>
         </div>
 
@@ -285,10 +343,10 @@ export default function AdminDashboard({ onRefreshNeeded }) {
             <span style={{ color: 'var(--primary-forest)' }}>kg</span>
           </div>
           <div style={{ fontSize: '1.9rem', fontWeight: 900, color: 'var(--primary-forest)', marginTop: 4 }}>
-            {analytics?.totalWasteKg ?? 17} <span style={{ fontSize: '1rem', fontWeight: 700 }}>kg</span>
+            {analytics?.totalWasteKg ?? 0} <span style={{ fontSize: '1rem', fontWeight: 700 }}>kg</span>
           </div>
           <div style={{ fontSize: '0.74rem', color: 'var(--secondary-text)', marginTop: 4 }}>
-            Recycling Rate: <strong>{analytics?.recyclingRate ?? 33.3}%</strong>
+            Recycling Rate: <strong>{analytics?.recyclingRate ?? 0}%</strong>
           </div>
         </div>
       </div>
@@ -332,11 +390,11 @@ export default function AdminDashboard({ onRefreshNeeded }) {
                 fontWeight: 700,
                 color: 'var(--secondary-green)'
               }}>
-                Estimated EPA Metrics
+                Heuristic EPA Estimates
               </span>
             </div>
             <p style={{ fontSize: '0.76rem', color: 'var(--secondary-text)', marginTop: 2 }}>
-              Standard conversion factors: 0.72 kg CO₂ saved / kg waste; 1 mature tree absorbs ~22 kg CO₂/year.
+              Calculated on diverted waste: 0.72 kg CO₂ saved / kg waste; 1 tree absorbs ~22 kg CO₂/yr; 1.8 kWh energy saved/kg.
             </p>
           </div>
         </div>
@@ -347,7 +405,7 @@ export default function AdminDashboard({ onRefreshNeeded }) {
               CO₂ Diverted (Est.)
             </div>
             <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--primary-forest)' }}>
-              {analytics?.environmentalEstimates?.co2SavedKg ?? 12.2} kg
+              {analytics?.environmentalEstimates?.co2SavedKg ?? 0} kg
             </div>
           </div>
           <div style={{ textAlign: 'center', borderLeft: '1.5px solid var(--border-light)', paddingLeft: 18 }}>
@@ -355,7 +413,7 @@ export default function AdminDashboard({ onRefreshNeeded }) {
               Tree Eq. Preserved (Est.)
             </div>
             <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--secondary-green)' }}>
-              {analytics?.environmentalEstimates?.treesPreserved ?? 0.6} trees
+              {analytics?.environmentalEstimates?.treesPreserved ?? 0} trees
             </div>
           </div>
           <div style={{ textAlign: 'center', borderLeft: '1.5px solid var(--border-light)', paddingLeft: 18 }}>
@@ -363,7 +421,7 @@ export default function AdminDashboard({ onRefreshNeeded }) {
               Energy Conserved (Est.)
             </div>
             <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#b45309' }}>
-              {analytics?.environmentalEstimates?.kwhEnergySaved ?? 30.6} kWh
+              {analytics?.environmentalEstimates?.kwhEnergySaved ?? 0} kWh
             </div>
           </div>
         </div>
@@ -417,7 +475,7 @@ export default function AdminDashboard({ onRefreshNeeded }) {
                 Optimized Multi-Stop Fleet Collection Route
               </h3>
               <p style={{ fontSize: '0.8rem', color: 'var(--secondary-text)' }}>
-                Origin: Central Depot → Sequential Pickups → Terminal Dropoff: Bronx Composting Station
+                Depot Origin → Sequential Pickups → Nearest Recycling Terminal ({optimizedRoute.dropoff?.name || 'Recycling Drop-Off'})
               </p>
             </div>
 
@@ -438,11 +496,10 @@ export default function AdminDashboard({ onRefreshNeeded }) {
           </div>
 
           {/* Interactive Route Leaflet Map */}
-          <div style={{ height: 320, borderRadius: 16, overflow: 'hidden', border: '1.5px solid var(--border-light)', marginBottom: 16 }}>
+          <div style={{ height: 380, borderRadius: 16, overflow: 'hidden', border: '1.5px solid var(--border-light)', marginBottom: 16 }}>
             <MapContainer
-              center={[40.848, -73.868]}
+              center={optimizedRoute.waypoints[0]?.coordinates ? [optimizedRoute.waypoints[0].coordinates.lat, optimizedRoute.waypoints[0].coordinates.lng] : [40.8520, -73.8790]}
               zoom={13}
-              scrollWheelZoom={false}
               style={{ height: '100%', width: '100%' }}
             >
               <TileLayer
@@ -516,7 +573,7 @@ export default function AdminDashboard({ onRefreshNeeded }) {
               Pickup Reports Management (Full CRUD)
             </h3>
             <p style={{ fontSize: '0.78rem', color: 'var(--secondary-text)' }}>
-              Filter by category or lifecycle stage, search by tracking ID, update status, and manage persistence.
+              Filter by category, search by tracking ID, edit pickup records, update lifecycle status, and delete entries.
             </p>
           </div>
 
@@ -619,21 +676,42 @@ export default function AdminDashboard({ onRefreshNeeded }) {
                       </select>
                     </td>
                     <td style={{ padding: '12px 14px' }}>
-                      <button
-                        onClick={() => handleDeleteReport(r._id || r.trackingId)}
-                        title="Delete Record (CRUD Delete)"
-                        style={{
-                          color: '#ef4444',
-                          padding: 6,
-                          borderRadius: 6,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <button
+                          onClick={() => handleOpenEdit(r)}
+                          title="Edit Pickup Record (CRUD Update)"
+                          style={{
+                            color: 'var(--primary-forest)',
+                            padding: 6,
+                            borderRadius: 6,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Edit3 size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteReport(r._id || r.trackingId)}
+                          title="Delete Record (CRUD Delete)"
+                          style={{
+                            color: '#ef4444',
+                            padding: 6,
+                            borderRadius: 6,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -648,6 +726,152 @@ export default function AdminDashboard({ onRefreshNeeded }) {
           </table>
         </div>
       </div>
+
+      {/* Full CRUD Report Edit Modal */}
+      {editingReport && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.45)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 110,
+          padding: 16
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: 20,
+            maxWidth: 520,
+            width: '100%',
+            padding: '24px 28px',
+            border: '1.5px solid var(--border-light)',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary-forest)' }}>
+                  Edit Pickup Record
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: 'var(--secondary-text)' }}>
+                  Tracking ID: {editingReport.trackingId}
+                </p>
+              </div>
+              <button
+                onClick={() => setEditingReport(null)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--secondary-text)', cursor: 'pointer', padding: 4 }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: 'var(--secondary-text)', marginBottom: 4 }}>
+                  WASTE CATEGORY
+                </label>
+                <select
+                  value={editFormData.category}
+                  onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1.5px solid var(--border-light)', fontSize: '0.86rem' }}
+                >
+                  {CANONICAL_CATEGORIES.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: 'var(--secondary-text)', marginBottom: 4 }}>
+                  SUB-CATEGORY / DESCRIPTION
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.subCategory}
+                  onChange={(e) => setEditFormData({ ...editFormData, subCategory: e.target.value })}
+                  placeholder="e.g. Clean PET water bottles"
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1.5px solid var(--border-light)', fontSize: '0.86rem' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: 'var(--secondary-text)', marginBottom: 4 }}>
+                    QUANTITY
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={editFormData.quantity}
+                    onChange={(e) => setEditFormData({ ...editFormData, quantity: Number(e.target.value) })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1.5px solid var(--border-light)', fontSize: '0.86rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: 'var(--secondary-text)', marginBottom: 4 }}>
+                    UNIT
+                  </label>
+                  <select
+                    value={editFormData.unit}
+                    onChange={(e) => setEditFormData({ ...editFormData, unit: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1.5px solid var(--border-light)', fontSize: '0.86rem' }}
+                  >
+                    <option value="bags">bags</option>
+                    <option value="kg">kg</option>
+                    <option value="items">items</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: 'var(--secondary-text)', marginBottom: 4 }}>
+                  PICKUP ADDRESS
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.address}
+                  onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+                  required
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1.5px solid var(--border-light)', fontSize: '0.86rem' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: 'var(--secondary-text)', marginBottom: 4 }}>
+                  INSTRUCTIONS / NOTES
+                </label>
+                <textarea
+                  rows="2"
+                  value={editFormData.notes}
+                  onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1.5px solid var(--border-light)', fontSize: '0.86rem' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => setEditingReport(null)}
+                  className="btn-secondary"
+                  style={{ padding: '8px 16px', fontSize: '0.84rem' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit}
+                  className="btn-primary"
+                  style={{ padding: '8px 20px', fontSize: '0.84rem' }}
+                >
+                  <Save size={15} />
+                  <span>{isSavingEdit ? 'Saving...' : 'Save Changes'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

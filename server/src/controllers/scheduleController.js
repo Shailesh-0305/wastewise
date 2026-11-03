@@ -1,28 +1,26 @@
 import CollectionSchedule from '../models/CollectionSchedule.js';
-import { inMemoryDB } from '../store/inMemoryStore.js';
 import mongoose from 'mongoose';
 
 export const getAllSchedules = async (req, res) => {
   try {
-    const { zone, status } = req.query;
+    const { zone, status, month, year } = req.query;
 
-    if (mongoose.connection.readyState === 1) {
-      let query = {};
-      if (zone && zone !== 'All') query.zone = zone;
-      if (status && status !== 'All') query.status = status;
-
-      const schedules = await CollectionSchedule.find(query).sort({ date: 1 });
-      return res.json({ success: true, count: schedules.length, schedules });
-    } else {
-      let list = [...inMemoryDB.schedules];
-      if (zone && zone !== 'All') {
-        list = list.filter(s => s.zone.toLowerCase().includes(zone.toLowerCase()));
-      }
-      if (status && status !== 'All') {
-        list = list.filter(s => s.status.toLowerCase() === status.toLowerCase());
-      }
-      return res.json({ success: true, count: list.length, schedules: list });
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ success: false, message: 'Database connection offline.' });
     }
+
+    let query = {};
+    if (zone && zone !== 'All') query.zone = zone;
+    if (status && status !== 'All') query.status = status;
+
+    if (month && year) {
+      const startOfMonth = new Date(Number(year), Number(month) - 1, 1);
+      const endOfMonth = new Date(Number(year), Number(month), 0, 23, 59, 59);
+      query.date = { $gte: startOfMonth, $lte: endOfMonth };
+    }
+
+    const schedules = await CollectionSchedule.find(query).sort({ date: 1 });
+    return res.json({ success: true, count: schedules.length, schedules });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -36,14 +34,22 @@ export const createSchedule = async (req, res) => {
       date,
       dayOfWeek = 'Thursday',
       timeWindow = '07:00 AM - 09:00 AM',
-      categories = ['Organic', 'General'],
+      categories = ['Organic', 'Plastic'],
       driverName = 'Muhammad Gilang Pratama',
       vehicleId = 'TRK-GREEN-08',
       notes = ''
     } = req.body;
 
+    if (!title) {
+      return res.status(400).json({ success: false, message: 'Schedule title is required.' });
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ success: false, message: 'Database connection offline.' });
+    }
+
     const newScheduleData = {
-      title: title || `${categories.join(' & ')} Collection Round`,
+      title,
       zone,
       date: date ? new Date(date) : new Date(Date.now() + 86400000),
       dayOfWeek,
@@ -55,19 +61,8 @@ export const createSchedule = async (req, res) => {
       notes
     };
 
-    if (mongoose.connection.readyState === 1) {
-      const schedule = await CollectionSchedule.create(newScheduleData);
-      return res.status(201).json({ success: true, schedule });
-    } else {
-      const schedule = {
-        _id: 's_' + Date.now(),
-        ...newScheduleData,
-        date: newScheduleData.date.toISOString(),
-        createdAt: new Date().toISOString()
-      };
-      inMemoryDB.schedules.push(schedule);
-      return res.status(201).json({ success: true, schedule });
-    }
+    const schedule = await CollectionSchedule.create(newScheduleData);
+    return res.status(201).json({ success: true, schedule });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -77,16 +72,13 @@ export const updateSchedule = async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (mongoose.connection.readyState === 1) {
-      const updated = await CollectionSchedule.findByIdAndUpdate(id, req.body, { new: true });
-      if (!updated) return res.status(404).json({ success: false, message: 'Schedule not found' });
-      return res.json({ success: true, schedule: updated });
-    } else {
-      const index = inMemoryDB.schedules.findIndex(s => s._id === id);
-      if (index === -1) return res.status(404).json({ success: false, message: 'Schedule not found' });
-      inMemoryDB.schedules[index] = { ...inMemoryDB.schedules[index], ...req.body };
-      return res.json({ success: true, schedule: inMemoryDB.schedules[index] });
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ success: false, message: 'Database connection offline.' });
     }
+
+    const updated = await CollectionSchedule.findByIdAndUpdate(id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ success: false, message: 'Schedule not found.' });
+    return res.json({ success: true, schedule: updated });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -96,15 +88,13 @@ export const deleteSchedule = async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (mongoose.connection.readyState === 1) {
-      await CollectionSchedule.findByIdAndDelete(id);
-      return res.json({ success: true, message: 'Schedule deleted successfully' });
-    } else {
-      const index = inMemoryDB.schedules.findIndex(s => s._id === id);
-      if (index === -1) return res.status(404).json({ success: false, message: 'Schedule not found' });
-      inMemoryDB.schedules.splice(index, 1);
-      return res.json({ success: true, message: 'Schedule deleted successfully' });
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ success: false, message: 'Database connection offline.' });
     }
+
+    const deleted = await CollectionSchedule.findByIdAndDelete(id);
+    if (!deleted) return res.status(404).json({ success: false, message: 'Schedule not found.' });
+    return res.json({ success: true, message: 'Schedule deleted successfully from database.' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
