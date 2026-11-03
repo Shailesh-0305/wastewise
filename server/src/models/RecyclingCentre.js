@@ -24,7 +24,7 @@ const recyclingCentreSchema = new mongoose.Schema({
   },
   phone: {
     type: String,
-    default: '+91 422 230 0199'
+    default: ''
   },
   acceptedMaterials: [
     {
@@ -34,20 +34,19 @@ const recyclingCentreSchema = new mongoose.Schema({
   ],
   materialSpecs: {
     type: String,
-    default: 'AA, Lithium-Ion, NiMH, PET, HDPE, LDPE'
+    default: ''
   },
   imageUrl: {
     type: String,
-    default: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=600&q=80'
+    default: ''
   },
   rating: {
-    type: Number,
-    default: 4.8
+    type: Number
   },
   distanceTimes: {
-    walkMin: { type: Number, default: 20 },
-    bikeMin: { type: Number, default: 10 },
-    driveMin: { type: Number, default: 5 }
+    walkMin: { type: Number },
+    bikeMin: { type: Number },
+    driveMin: { type: Number }
   },
   createdAt: {
     type: Date,

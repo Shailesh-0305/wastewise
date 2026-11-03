@@ -93,10 +93,20 @@ export const createReport = async (req, res) => {
       slotDate = new Date(Date.now() + 86400000);
     }
 
-    // Deterministic category-based eco points calculation
-    const numQuantity = Math.max(1, Math.min(Number(quantity) || 1, 50));
-    const pointsPerUnit = CATEGORY_ECO_POINTS[matchedCategory] || 15;
-    const calculatedEcoPoints = pointsPerUnit * numQuantity;
+    // Validate quantity strictly: must be a positive finite number between 1 and 100
+    const numQuantity = Number(quantity);
+    if (quantity === undefined || quantity === null || isNaN(numQuantity) || numQuantity <= 0 || !Number.isFinite(numQuantity)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid positive quantity greater than 0.'
+      });
+    }
+    if (numQuantity > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Quantity exceeds maximum allowable collection limit (100 units).'
+      });
+    }
 
     const newReportData = {
       trackingId,
@@ -108,7 +118,7 @@ export const createReport = async (req, res) => {
       },
       category: matchedCategory,
       subCategory: subCategory || `${matchedCategory} segregated recyclable item`,
-      quantity: Number(quantity) || 1,
+      quantity: numQuantity,
       unit,
       location: {
         address,
@@ -116,11 +126,12 @@ export const createReport = async (req, res) => {
         coordinates
       },
       imageUrl,
+      // Compatibility fields: no simulated AI confidence or CO2 values; ecoPoints credited upon collection
       aiClassification: {
-        detectedCategory: matchedCategory,
-        confidence: 1.0,
+        detectedCategory: '',
+        confidence: 0,
         estimatedCO2Grams: 0,
-        ecoPointsEarned: calculatedEcoPoints
+        ecoPointsEarned: 0
       },
       preferredSlot: {
         date: slotDate,
@@ -138,6 +149,7 @@ export const createReport = async (req, res) => {
         etaMinutes: 0
       },
       notes,
+      pointsAwarded: false,
       timeline: [
         {
           status: 'Reported',
@@ -150,13 +162,7 @@ export const createReport = async (req, res) => {
 
     const created = await WasteReport.create(newReportData);
 
-    // Award deterministic eco-points to citizen profile
-    if (userId && mongoose.Types.ObjectId.isValid(userId)) {
-      await User.findByIdAndUpdate(userId, {
-        $inc: { ecoPoints: calculatedEcoPoints }
-      });
-    }
-
+    // Eco-points are deferred until verified collection/recycling
     return res.status(201).json({ success: true, report: created });
   } catch (error) {
     console.error('Create report error:', error);
@@ -314,7 +320,16 @@ export const updateReport = async (req, res) => {
       updateFields.category = matched;
     }
     if (subCategory !== undefined) updateFields.subCategory = subCategory;
-    if (quantity !== undefined) updateFields.quantity = Number(quantity);
+    if (quantity !== undefined) {
+      const numQty = Number(quantity);
+      if (isNaN(numQty) || numQty <= 0 || !Number.isFinite(numQty)) {
+        return res.status(400).json({ success: false, message: 'Please provide a valid positive quantity greater than 0.' });
+      }
+      if (numQty > 100) {
+        return res.status(400).json({ success: false, message: 'Quantity exceeds maximum allowable collection limit (100 units).' });
+      }
+      updateFields.quantity = numQty;
+    }
     if (unit !== undefined) updateFields.unit = unit;
     if (notes !== undefined) updateFields.notes = notes;
 
@@ -398,18 +413,44 @@ export const updateReportStatus = async (req, res) => {
       }
     }
 
+    // Eco-points award on verified collection/recycling: only award points once per report
+    let pointsAwardedNow = false;
+    let awardedPoints = 0;
+
+    if (['Collected', 'Recycled'].includes(status) && !report.pointsAwarded) {
+      const verifiedQty = Math.max(1, Math.min(Number(report.quantity) || 1, 100));
+      awardedPoints = (CATEGORY_ECO_POINTS[report.category] || 15) * verifiedQty;
+
+      if (report.citizen?.userId && mongoose.Types.ObjectId.isValid(report.citizen.userId)) {
+        await User.findByIdAndUpdate(report.citizen.userId, {
+          $inc: { ecoPoints: awardedPoints }
+        });
+      }
+      pointsAwardedNow = true;
+    }
+
+    const noteSuffix = pointsAwardedNow ? ` (${awardedPoints} eco-points awarded to resident)` : '';
     const timelineEntry = {
       status,
       timestamp: new Date(),
-      note: note || `Status updated to ${status} by ${req.user?.name || req.user?.role || 'staff'}`
+      note: (note || `Status updated to ${status} by ${req.user?.name || req.user?.role || 'staff'}`) + noteSuffix
+    };
+
+    const updateDoc = {
+      $set: {
+        status,
+        ...(pointsAwardedNow ? {
+          pointsAwarded: true,
+          pointsAwardedAt: new Date(),
+          'aiClassification.ecoPointsEarned': awardedPoints
+        } : {})
+      },
+      $push: { timeline: timelineEntry }
     };
 
     const updated = await WasteReport.findOneAndUpdate(
       { $or: [{ _id: mongoose.Types.ObjectId.isValid(id) ? id : null }, { trackingId: id }] },
-      {
-        $set: { status },
-        $push: { timeline: timelineEntry }
-      },
+      updateDoc,
       { new: true }
     );
 

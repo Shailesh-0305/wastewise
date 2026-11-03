@@ -5,15 +5,31 @@ import User from './models/User.js';
 import WasteReport from './models/WasteReport.js';
 import RecyclingCentre from './models/RecyclingCentre.js';
 import CollectionSchedule from './models/CollectionSchedule.js';
-import { initialUsers, initialReports, initialCentres, initialSchedules } from './store/inMemoryStore.js';
+import { initialReports, initialCentres, initialSchedules } from './store/inMemoryStore.js';
 
 dotenv.config();
 
-const seed = async () => {
+/**
+ * Safe, idempotent seeding script for WasteWise.
+ * 
+ * Safety invariants:
+ * 1. NEVER calls deleteMany() — existing collections and user data are strictly preserved.
+ * 2. Requires an explicitly configured ADMIN_PASSWORD in environment (refuses default 'admin123').
+ * 3. Idempotent: checks for existing unique identifiers (email, trackingId, name+city, title) before inserting.
+ * 4. Only uses verified Coimbatore, Tamil Nadu demo records clearly labeled as demo data.
+ */
+export const seed = async () => {
   const mongoUri = process.env.MONGODB_URI;
 
   if (!mongoUri || mongoUri === 'your_mongodb_atlas_connection_string') {
     console.error('❌ MONGODB_URI is missing or unconfigured in server/.env');
+    process.exit(1);
+  }
+
+  // Enforce strong, explicit administrator password configuration
+  const adminPass = process.env.ADMIN_PASSWORD;
+  if (!adminPass || adminPass.trim() === '' || adminPass === 'admin123') {
+    console.error('❌ Safe Seed Aborted: ADMIN_PASSWORD environment variable must be explicitly configured and cannot be default "admin123".');
     process.exit(1);
   }
 
@@ -22,102 +38,158 @@ const seed = async () => {
   try {
     console.log(`Connecting to MongoDB at ${maskedUri}...`);
     await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 8000 });
-    console.log('✅ MongoDB connected for administrative seeding.');
+    console.log('✅ MongoDB connected for safe administrative seeding.');
 
-    await User.deleteMany();
-    await WasteReport.deleteMany();
-    await RecyclingCentre.deleteMany();
-    await CollectionSchedule.deleteMany();
-
-    // Prepare seeded users with bcrypt password hashing
+    // 1. Seed Administrator and Demo Accounts (Idempotent - checks if email exists)
     const adminEmail = (process.env.ADMIN_EMAIL || 'admin@wastewise.org').toLowerCase().trim();
-    const adminPass = process.env.ADMIN_PASSWORD || 'admin123';
-    const adminName = process.env.ADMIN_NAME || 'Admin Supervisor';
+    const adminName = process.env.ADMIN_NAME || 'Coimbatore Municipal Supervisor';
 
     const salt = await bcrypt.genSalt(10);
     const hashedAdminPassword = await bcrypt.hash(adminPass, salt);
     const hashedCitizenPassword = await bcrypt.hash('citizen123', salt);
     const hashedDriverPassword = await bcrypt.hash('driver123', salt);
 
-    const usersToInsert = [
+    const demoUsers = [
       {
         name: adminName,
         email: adminEmail,
         password: hashedAdminPassword,
         role: 'admin',
-        phone: '+1 (555) 999-0000',
-        address: { street: 'City Municipal HQ', city: 'Buffalo', state: 'NY' },
-        ecoPoints: 9999,
-        co2SavedKg: 850.0,
-        ecoLevel: 'City Guardian Master',
+        phone: '+91 422 230 0100',
+        address: {
+          street: 'CCMC Headquarters, Big Bazaar St',
+          locality: 'Town Hall',
+          city: 'Coimbatore',
+          state: 'Tamil Nadu',
+          zip: '641001'
+        },
+        ecoPoints: 0,
+        co2SavedKg: 0,
+        ecoLevel: 'Municipal Admin',
         avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80'
       },
       {
-        name: 'Alex Navillera',
-        email: 'alex@example.com',
+        name: 'Demo Citizen (Coimbatore)',
+        email: 'citizen.demo@wastewise.org',
         password: hashedCitizenPassword,
         role: 'citizen',
-        phone: '+1 (555) 234-5678',
-        address: { street: 'Lake Star Dist. No48', city: 'Buffalo', state: 'NY', zip: '14201', coordinates: { lat: 40.8448, lng: -73.8648 } },
-        ecoPoints: 1250,
-        co2SavedKg: 24.8,
-        ecoLevel: 'Level Eco Green 82',
+        phone: '+91 98765 43210',
+        address: {
+          street: '42 Cross Cut Road',
+          locality: 'Gandhipuram',
+          city: 'Coimbatore',
+          state: 'Tamil Nadu',
+          zip: '641001'
+        },
+        ecoPoints: 0,
+        co2SavedKg: 0,
+        ecoLevel: 'Eco Starter',
         avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'
       },
       {
-        name: 'Travis Jordan',
-        email: 'travis@wastewise.org',
+        name: 'Demo Driver (Coimbatore West)',
+        email: 'driver.demo@wastewise.org',
         password: hashedDriverPassword,
         role: 'driver',
-        phone: '+1 (587) 254-2365',
-        address: { street: 'Depot 4 - Station North', city: 'Buffalo', state: 'NY' },
-        ecoPoints: 4800,
-        co2SavedKg: 182.5,
-        ecoLevel: 'Eco Champion Gold',
+        phone: '+91 94431 82910',
+        address: {
+          street: 'Central Fleet Depot, Big Bazaar St',
+          locality: 'Town Hall',
+          city: 'Coimbatore',
+          state: 'Tamil Nadu',
+          zip: '641001'
+        },
+        ecoPoints: 0,
+        co2SavedKg: 0,
+        ecoLevel: 'Fleet Driver',
         avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80'
       }
     ];
 
-    await User.insertMany(usersToInsert);
+    let usersInserted = 0;
+    let usersSkipped = 0;
+    for (const u of demoUsers) {
+      const existing = await User.findOne({ email: u.email });
+      if (!existing) {
+        await User.create(u);
+        usersInserted++;
+      } else {
+        usersSkipped++;
+      }
+    }
 
-    // Format reports dates as Date objects for MongoDB persistence
-    const reportsToInsert = initialReports.map(r => ({
-      ...r,
-      _id: undefined,
-      preferredSlot: {
-        ...r.preferredSlot,
-        date: new Date(r.preferredSlot?.date || Date.now())
-      },
-      timeline: (r.timeline || []).map(t => ({
-        ...t,
-        timestamp: new Date(t.timestamp || Date.now())
-      })),
-      createdAt: new Date(r.createdAt || Date.now())
-    }));
-    await WasteReport.insertMany(reportsToInsert);
+    // 2. Seed Recycling Centres (Idempotent - checks if name and city exist)
+    let centresInserted = 0;
+    let centresSkipped = 0;
+    for (const c of initialCentres) {
+      const existing = await RecyclingCentre.findOne({ name: c.name, city: 'Coimbatore' });
+      if (!existing) {
+        await RecyclingCentre.create({ ...c, _id: undefined });
+        centresInserted++;
+      } else {
+        centresSkipped++;
+      }
+    }
 
-    const centresToInsert = initialCentres.map(c => ({ ...c, _id: undefined }));
-    await RecyclingCentre.insertMany(centresToInsert);
+    // 3. Seed Collection Schedules (Idempotent - checks if title exists)
+    let schedulesInserted = 0;
+    let schedulesSkipped = 0;
+    for (const s of initialSchedules) {
+      const existing = await CollectionSchedule.findOne({ title: s.title });
+      if (!existing) {
+        await CollectionSchedule.create({
+          ...s,
+          _id: undefined,
+          date: new Date(s.date || Date.now())
+        });
+        schedulesInserted++;
+      } else {
+        schedulesSkipped++;
+      }
+    }
 
-    const schedulesToInsert = initialSchedules.map(s => ({
-      ...s,
-      _id: undefined,
-      date: new Date(s.date || Date.now())
-    }));
-    await CollectionSchedule.insertMany(schedulesToInsert);
+    // 4. Seed Demo Waste Reports (Idempotent - checks if trackingId exists)
+    let reportsInserted = 0;
+    let reportsSkipped = 0;
+    for (const r of initialReports) {
+      const existing = await WasteReport.findOne({ trackingId: r.trackingId });
+      if (!existing) {
+        await WasteReport.create({
+          ...r,
+          _id: undefined,
+          pointsAwarded: false,
+          preferredSlot: {
+            ...r.preferredSlot,
+            date: new Date(r.preferredSlot?.date || Date.now())
+          },
+          timeline: (r.timeline || []).map(t => ({
+            ...t,
+            timestamp: new Date(t.timestamp || Date.now())
+          })),
+          createdAt: new Date(r.createdAt || Date.now())
+        });
+        reportsInserted++;
+      } else {
+        reportsSkipped++;
+      }
+    }
 
-    console.log('🌱 [Database Seeded]: Successfully populated MongoDB Atlas with collections:');
-    console.log(`   - Users: ${usersToInsert.length} (Admin: ${adminEmail})`);
-    console.log(`   - Reports: ${reportsToInsert.length}`);
-    console.log(`   - Centres: ${centresToInsert.length}`);
-    console.log(`   - Schedules: ${schedulesToInsert.length}`);
+    console.log('🌱 [Safe Seeding Report]:');
+    console.log(`   - Users: ${usersInserted} added, ${usersSkipped} already existed`);
+    console.log(`   - Centres: ${centresInserted} added, ${centresSkipped} already existed`);
+    console.log(`   - Schedules: ${schedulesInserted} added, ${schedulesSkipped} already existed`);
+    console.log(`   - Reports: ${reportsInserted} added, ${reportsSkipped} already existed`);
+    console.log('   (No existing database records were deleted).');
 
     await mongoose.disconnect();
     process.exit(0);
   } catch (error) {
-    console.error('❌ Seeding error:', error.message);
+    console.error('❌ Safe seeding error:', error.message);
     process.exit(1);
   }
 };
 
-seed();
+// Only execute when directly invoked via CLI
+if (process.argv[1] && process.argv[1].endsWith('seed.js')) {
+  seed();
+}

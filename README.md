@@ -227,11 +227,13 @@ MONGODB_URI=your_mongodb_atlas_connection_string
 JWT_SECRET=replace_with_a_long_random_secret
 ```
 
-### 4. Seed the Database (Optional)
-Populate MongoDB with demo users, reports, recycling stations, and schedules:
+### 4. Safe Database Seeding (Non-Destructive)
+To safely augment MongoDB with verified Coimbatore demo users, recycling drop-off stations, and municipal schedules without wiping existing collections:
 ```bash
+# Requires setting ADMIN_PASSWORD in server/.env (refuses default 'admin123')
 npm run seed
 ```
+*(The safe seed script is idempotent; it never deletes existing records and only inserts missing demo entities).*
 
 ### 5. Run the Application
 Run both backend API (Port 5000) and frontend client (Vite) concurrently:

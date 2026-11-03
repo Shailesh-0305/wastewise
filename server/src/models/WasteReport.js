@@ -25,6 +25,8 @@ const wasteReportSchema = new mongoose.Schema({
   quantity: {
     type: Number,
     required: true,
+    min: 1,
+    max: 100,
     default: 1
   },
   unit: {
@@ -78,6 +80,13 @@ const wasteReportSchema = new mongoose.Schema({
   notes: {
     type: String,
     default: ''
+  },
+  pointsAwarded: {
+    type: Boolean,
+    default: false
+  },
+  pointsAwardedAt: {
+    type: Date
   },
   timeline: [
     {

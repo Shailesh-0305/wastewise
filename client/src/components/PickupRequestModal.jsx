@@ -131,13 +131,25 @@ export default function PickupRequestModal({ isOpen, onClose, onReportCreated, c
       return;
     }
 
+    const numQty = Number(quantity);
+    if (!quantity || isNaN(numQty) || numQty <= 0) {
+      setError('Please provide a valid pickup quantity (at least 1).');
+      setIsSubmitting(false);
+      return;
+    }
+    if (numQty > 100) {
+      setError('Maximum allowable pickup quantity is 100 units.');
+      setIsSubmitting(false);
+      return;
+    }
+
     const chosenOption = dateOptions.find(d => d.value === selectedDateVal);
 
     try {
       const payload = {
         category,
         subCategory: subCategory ? subCategory.trim() : `${category} waste items`,
-        quantity: Number(quantity) || 1,
+        quantity: numQty,
         unit,
         address: address.trim(),
         landmark: landmark.trim(),
