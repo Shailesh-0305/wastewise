@@ -2,12 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, 
   MapPin, 
-  Calendar, 
-  Clock, 
-  Package, 
-  CheckCircle, 
   Navigation,
-  FileText,
   AlertCircle
 } from 'lucide-react';
 import { api } from '../services/api';
@@ -71,7 +66,7 @@ export default function PickupRequestModal({ isOpen, onClose, initialData = null
     try {
       const payload = {
         category,
-        subCategory: subCategory || `${category} segregated recyclables`,
+        subCategory: subCategory ? `${subCategory} [${packageSize}]` : `${category} (${packageSize} batch)`,
         quantity: Number(quantity),
         unit,
         address,

@@ -28,6 +28,15 @@ export const createReport = async (req, res) => {
       });
     }
 
+    const validCategories = ['Plastic', 'Organic', 'Electronic', 'Medical', 'Recyclable', 'Metal', 'Glass'];
+    const matchedCategory = validCategories.find(c => c.toLowerCase() === category.toLowerCase());
+    if (!matchedCategory) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid waste category. Must be one of: ${validCategories.join(', ')}`
+      });
+    }
+
     const trackingId = 'WW-' + Math.floor(10000 + Math.random() * 90000);
     const citizenName = req.user?.name || req.body.citizenName || 'Alex Navillera';
     const citizenPhone = req.body.citizenPhone || '+1 (555) 234-5678';
@@ -50,8 +59,8 @@ export const createReport = async (req, res) => {
         email: citizenEmail,
         phone: citizenPhone
       },
-      category,
-      subCategory: subCategory || `${category} segregated recyclable item`,
+      category: matchedCategory,
+      subCategory: subCategory || `${matchedCategory} segregated recyclable item`,
       quantity: Number(quantity) || 1,
       unit,
       location: {
@@ -325,9 +334,12 @@ export const deleteReport = async (req, res) => {
     const { id } = req.params;
 
     if (mongoose.connection.readyState === 1) {
-      await WasteReport.findOneAndDelete({
+      const deleted = await WasteReport.findOneAndDelete({
         $or: [{ _id: mongoose.Types.ObjectId.isValid(id) ? id : null }, { trackingId: id }]
       });
+      if (!deleted) {
+        return res.status(404).json({ success: false, message: 'Report not found' });
+      }
       return res.json({ success: true, message: 'Report deleted successfully' });
     } else {
       const index = inMemoryDB.reports.findIndex(r => r._id === id || r.trackingId === id);

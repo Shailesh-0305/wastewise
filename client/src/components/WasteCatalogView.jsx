@@ -1,19 +1,16 @@
 import React, { useState } from 'react';
 import { 
   Sparkles, 
-  Check, 
-  HelpCircle, 
-  ArrowRight, 
-  ShieldAlert, 
-  Recycle,
-  Layers,
-  Sparkle
+  PlusCircle,
+  BookOpen
 } from 'lucide-react';
+import { ForestSilhouettes, FloatingLeaf } from './NatureDecorations';
 
 const RECYCLING_CODES = [
   {
     code: 'PETE/PET',
     number: '1',
+    category: 'Plastic',
     isRecyclable: true,
     title: 'Polyethylene Terephthalate',
     description: 'Plastic commonly used in single-use soda bottles, water bottles, and food jars.',
@@ -23,6 +20,7 @@ const RECYCLING_CODES = [
   {
     code: 'HDPE',
     number: '2',
+    category: 'Plastic',
     isRecyclable: true,
     title: 'High-Density Polyethylene',
     description: 'Versatile stiff plastic commonly used in milk jugs, detergent bottles, and shampoo containers.',
@@ -32,6 +30,7 @@ const RECYCLING_CODES = [
   {
     code: 'PVC',
     number: '3',
+    category: 'Plastic',
     isRecyclable: false,
     title: 'Polyvinyl Chloride',
     description: 'Tough materials for pipes, playground equipment, vinyl siding, and blister packaging.',
@@ -41,6 +40,7 @@ const RECYCLING_CODES = [
   {
     code: 'LDPE',
     number: '4',
+    category: 'Plastic',
     isRecyclable: true,
     title: 'Low-Density Polyethylene',
     description: 'Flexible plastic used in squeeze bottles, grocery bags, bread packaging, and bubble wrap.',
@@ -50,6 +50,7 @@ const RECYCLING_CODES = [
   {
     code: 'PP',
     number: '5',
+    category: 'Plastic',
     isRecyclable: true,
     title: 'Polypropylene',
     description: 'High heat-tolerant plastic for yogurt cups, medicine bottles, ketchup bottles, and syrup caps.',
@@ -59,15 +60,36 @@ const RECYCLING_CODES = [
   {
     code: 'PS',
     number: '6',
+    category: 'Plastic',
     isRecyclable: false,
     title: 'Polystyrene',
     description: 'Foam coffee cups, styrofoam trays, disposable packing peanuts, and plastic cutlery.',
     howToPrepare: 'Non-recyclable curbside. Reuse peanuts or check for specialty styrofoam drop-offs.',
     imageUrl: 'https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=300&q=80'
+  },
+  {
+    code: 'E-WASTE',
+    number: '7',
+    category: 'Electronic',
+    isRecyclable: true,
+    title: 'Consumer Electronics & Cells',
+    description: 'Old smartphones, laptops, chargers, lithium-ion, and alkaline battery packs.',
+    howToPrepare: 'Tape battery terminals with clear tape. Never place in standard curbside bins.',
+    imageUrl: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?auto=format&fit=crop&w=300&q=80'
+  },
+  {
+    code: 'ORGANIC',
+    number: '8',
+    category: 'Organic',
+    isRecyclable: true,
+    title: 'Biodegradable Kitchen Scraps',
+    description: 'Vegetable peelings, fruit rinds, coffee grounds, eggshells, and yard leaves.',
+    howToPrepare: 'Collect in a breathable countertop compost pail or biodegradable brown paper bag.',
+    imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=300&q=80'
   }
 ];
 
-export const SORTING_STEPS = [
+const SORTING_STEPS = [
   {
     step: '1',
     title: 'Clean your waste',
@@ -82,14 +104,14 @@ export const SORTING_STEPS = [
   },
   {
     step: '3',
-    title: 'Pack your waste',
-    desc: 'Use paper bags or segregated bins categorized by material ready for your pickup courier.',
+    title: 'Pack by category',
+    desc: 'Segregate items into the 7 official WasteWise streams ready for driver collection.',
     icon: '🛍️'
   }
 ];
 
 export default function WasteCatalogView({ onOpenScanner, onRequestPickup }) {
-  const [filter, setFilter] = useState('all'); // 'all', 'recyclable', 'non-recyclable'
+  const [filter, setFilter] = useState('all');
 
   const filteredCodes = RECYCLING_CODES.filter(item => {
     if (filter === 'recyclable') return item.isRecyclable;
@@ -98,115 +120,131 @@ export default function WasteCatalogView({ onOpenScanner, onRequestPickup }) {
   });
 
   return (
-    <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 28 }}>
-      {/* Top Banner (GreenCove Style - Image 3) */}
-      <div style={{
-        background: 'linear-gradient(135deg, #163e2d 0%, #255840 100%)',
-        borderRadius: 28,
-        padding: '32px',
-        color: '#ffffff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 20
-      }}>
-        <div style={{ maxWidth: 620 }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#4ade80', letterSpacing: '1px', textTransform: 'uppercase' }}>
-            greencove. waste catalog
-          </span>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, marginTop: 4, letterSpacing: '-0.5px' }}>
-            Pack up and let our staff pick your waste up
+    <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 26 }}>
+      {/* Nature-Inspired Pale Green Header Section */}
+      <div 
+        className="pale-green-box"
+        style={{
+          padding: '30px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 20
+        }}
+      >
+        <ForestSilhouettes opacity={0.15} height={135} />
+        <FloatingLeaf size={30} top={16} right={20} rotate={15} opacity={0.22} />
+
+        <div style={{ maxWidth: 620, position: 'relative', zIndex: 1 }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            background: '#ffffff',
+            border: '1.5px solid var(--soft-leaf-green)',
+            padding: '4px 12px',
+            borderRadius: 999,
+            fontSize: '0.76rem',
+            fontWeight: 700,
+            color: 'var(--primary-forest)',
+            marginBottom: 8
+          }}>
+            <BookOpen size={14} color="var(--secondary-green)" />
+            <span>Official Segregation Guide</span>
+          </div>
+          <h2 style={{ fontSize: '1.7rem', fontWeight: 800, color: 'var(--primary-text)', letterSpacing: '-0.4px' }}>
+            WasteWise Material Identification Guide
           </h2>
-          <p style={{ color: '#d8f3dc', fontSize: '0.92rem', marginTop: 8 }}>
-            Proper waste segregation prevents landfill contamination and increases city recycling yields by up to 40%.
+          <p style={{ color: 'var(--secondary-text)', fontSize: '0.88rem', marginTop: 4 }}>
+            Learn how to identify resin numbers, avoid recycling contamination, and prep items for our collection couriers.
           </p>
         </div>
 
-        <button
-          onClick={onOpenScanner}
-          className="btn-mint"
-          style={{ padding: '14px 24px', fontSize: '0.95rem' }}
-        >
-          <Sparkles size={18} /> Identify Item with AI Scanner
-        </button>
+        <div style={{ display: 'flex', gap: 10, position: 'relative', zIndex: 1 }}>
+          <button
+            onClick={onOpenScanner}
+            className="btn-mint"
+            style={{ padding: '10px 18px', fontSize: '0.86rem' }}
+          >
+            <Sparkles size={16} /> Scan Waste
+          </button>
+          <button
+            onClick={onRequestPickup}
+            className="btn-primary"
+            style={{ padding: '10px 18px', fontSize: '0.86rem' }}
+          >
+            <PlusCircle size={16} /> Request Pickup
+          </button>
+        </div>
       </div>
 
-      {/* 3 Step Preparation Guide (Direct Replica of Image 3 Screen 1) */}
+      {/* 3 Step Quick Sorting Process */}
       <div>
-        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1b4332', marginBottom: 14 }}>
-          How to Prepare for Collection:
+        <h3 style={{ fontSize: '1.08rem', fontWeight: 800, color: 'var(--primary-text)', marginBottom: 14 }}>
+          3-Step Household Segregation
         </h3>
         <div className="grid-3">
           {SORTING_STEPS.map(s => (
-            <div
-              key={s.step}
-              className="card"
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 10,
-                border: '1.5px solid #dcfce7',
-                background: '#ffffff'
-              }}
-            >
+            <div key={s.step} className="card" style={{ padding: '20px', display: 'flex', gap: 14 }}>
               <div style={{
                 width: 44,
                 height: 44,
-                borderRadius: 14,
-                background: '#e0f5ea',
+                borderRadius: 12,
+                background: 'var(--pale-green-section)',
+                border: '1.5px solid var(--soft-leaf-green)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.4rem'
+                fontSize: '1.2rem',
+                flexShrink: 0
               }}>
                 {s.icon}
               </div>
-              <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1b4332' }}>
-                {s.title}
-              </h4>
-              <p style={{ fontSize: '0.84rem', color: '#64748b', lineHeight: 1.5 }}>
-                {s.desc}
-              </p>
+              <div>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--secondary-green)', textTransform: 'uppercase' }}>
+                  Step {s.step}
+                </div>
+                <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: 'var(--primary-text)', marginTop: 2 }}>
+                  {s.title}
+                </h4>
+                <p style={{ fontSize: '0.78rem', color: 'var(--secondary-text)', marginTop: 4 }}>
+                  {s.desc}
+                </p>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Material Codes Catalog (Image 3 Replica) */}
+      {/* Material Identification Codes Grid */}
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
           <div>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1b4332' }}>
-              Plastic Resin Identification Codes
+            <h3 style={{ fontSize: '1.08rem', fontWeight: 800, color: 'var(--primary-text)' }}>
+              Standard Identification Numbers
             </h3>
-            <p style={{ fontSize: '0.8rem', color: '#64748b' }}>
-              Check the embossed recycling triangle on bottom of bottles and packaging
+            <p style={{ fontSize: '0.78rem', color: 'var(--secondary-text)' }}>
+              Look for the triangular chase symbol on the bottom of containers
             </p>
           </div>
 
-          {/* Recyclable / Non-Recyclable Toggle (Image 3) */}
-          <div style={{
-            display: 'flex',
-            background: '#e2e8f0',
-            padding: 4,
-            borderRadius: 999
-          }}>
+          <div style={{ display: 'flex', background: 'var(--very-light-mint)', padding: 3, borderRadius: 999, border: '1px solid var(--border-light)' }}>
             {[
-              { id: 'all', label: 'All Codes' },
-              { id: 'recyclable', label: 'Recyclable' },
-              { id: 'non-recyclable', label: 'Non-Recyclable' }
+              { id: 'all', label: 'All Items' },
+              { id: 'recyclable', label: 'Accepted Curbside' },
+              { id: 'non-recyclable', label: 'Special Drop-Off' }
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setFilter(tab.id)}
                 style={{
-                  padding: '6px 14px',
+                  padding: '5px 12px',
                   borderRadius: 999,
-                  fontSize: '0.78rem',
+                  fontSize: '0.76rem',
                   fontWeight: 700,
-                  background: filter === tab.id ? '#1b4332' : 'transparent',
-                  color: filter === tab.id ? '#ffffff' : '#475569',
+                  background: filter === tab.id ? 'var(--primary-forest)' : 'transparent',
+                  color: filter === tab.id ? '#ffffff' : 'var(--secondary-text)',
                   transition: 'all 0.2s'
                 }}
               >
@@ -216,55 +254,71 @@ export default function WasteCatalogView({ onOpenScanner, onRequestPickup }) {
           </div>
         </div>
 
-        {/* Code Cards Grid */}
-        <div className="grid-2">
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+          gap: 16
+        }}>
           {filteredCodes.map(item => (
-            <div
-              key={item.code}
-              className="card"
-              style={{
-                display: 'flex',
-                gap: 16,
-                padding: '20px',
-                border: '1.5px solid #e2e8f0',
-                transition: 'all 0.2s'
-              }}
-            >
-              <div style={{
-                width: 60,
-                height: 60,
-                borderRadius: 16,
-                background: item.isRecyclable ? '#e0f5ea' : '#fee2e2',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                border: item.isRecyclable ? '1.5px solid #bbf7d0' : '1.5px solid #fecaca'
-              }}>
-                <span style={{ fontSize: '1.2rem', fontWeight: 900, color: item.isRecyclable ? '#15803d' : '#b91c1c' }}>
-                  {item.number}
+            <div key={item.number} className="card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ height: 110, borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
+                <img
+                  src={item.imageUrl}
+                  alt={item.title}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 8,
+                    left: 8,
+                    background: item.isRecyclable ? '#dcfce7' : '#fee2e2',
+                    color: item.isRecyclable ? '#15803d' : '#b91c1c',
+                    border: `1px solid ${item.isRecyclable ? '#86efac' : '#fca5a5'}`,
+                    padding: '3px 8px',
+                    borderRadius: 999,
+                    fontSize: '0.68rem',
+                    fontWeight: 800
+                  }}
+                >
+                  {item.isRecyclable ? '✓ Curbside Recyclable' : '⚠ Non-Standard Drop'}
                 </span>
-                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: item.isRecyclable ? '#166534' : '#991b1b' }}>
-                  {item.code}
+                <span
+                  style={{
+                    position: 'absolute',
+                    bottom: 8,
+                    right: 8,
+                    background: 'rgba(255,255,255,0.92)',
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    color: 'var(--primary-forest)'
+                  }}
+                >
+                  #{item.number} {item.code}
                 </span>
               </div>
 
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#1b4332' }}>
-                    {item.code} ({item.title})
-                  </h4>
-                  <span className={`badge ${item.isRecyclable ? 'badge-recyclable' : 'badge-medical'}`} style={{ fontSize: '0.68rem' }}>
-                    {item.isRecyclable ? '✓ Recyclable' : '✕ Landfill / SafeDrop'}
-                  </span>
-                </div>
-                <p style={{ fontSize: '0.82rem', color: '#475569', marginTop: 4, lineHeight: 1.4 }}>
+              <div>
+                <h4 style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--primary-text)' }}>
+                  {item.title}
+                </h4>
+                <p style={{ fontSize: '0.76rem', color: 'var(--secondary-text)', marginTop: 4 }}>
                   {item.description}
                 </p>
-                <div style={{ fontSize: '0.76rem', color: '#15803d', fontWeight: 600, marginTop: 8, background: '#f0fdf4', padding: '6px 10px', borderRadius: 8 }}>
-                  <strong>How to prep:</strong> {item.howToPrepare}
-                </div>
+              </div>
+
+              <div style={{
+                background: 'var(--very-light-mint)',
+                border: '1px solid var(--border-light)',
+                borderRadius: 10,
+                padding: '8px 10px',
+                fontSize: '0.74rem',
+                color: 'var(--primary-text)'
+              }}>
+                <span style={{ fontWeight: 700, color: 'var(--primary-forest)' }}>Prep Tip: </span>
+                <span>{item.howToPrepare}</span>
               </div>
             </div>
           ))}
