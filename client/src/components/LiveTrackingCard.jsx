@@ -4,7 +4,8 @@ import {
   Phone, 
   Clock, 
   CheckCircle2, 
-  Truck
+  Truck,
+  Radio
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
@@ -41,8 +42,8 @@ export default function LiveTrackingCard({ activeReport }) {
   if (!activeReport) return null;
 
   const citizenCoords = [
-    activeReport.location?.coordinates?.lat || 40.8448,
-    activeReport.location?.coordinates?.lng || -73.8648
+    activeReport.location?.coordinates?.lat || 11.0055,
+    activeReport.location?.coordinates?.lng || 76.9661
   ];
 
   const hasDriverAssigned = Boolean(
@@ -51,7 +52,15 @@ export default function LiveTrackingCard({ activeReport }) {
     ['Assigned', 'In Progress', 'Collected', 'Recycled'].includes(activeReport.status)
   );
 
-  const driverCoords = hasDriverAssigned && activeReport.assignedDriver?.currentLocation?.lat
+  // Live driver tracking: only render driver marker if genuine live location streaming is active
+  const hasLiveDriverLocation = Boolean(
+    hasDriverAssigned &&
+    activeReport.assignedDriver?.currentLocation?.lat &&
+    activeReport.assignedDriver?.currentLocation?.lng &&
+    activeReport.assignedDriver?.isLiveStreaming
+  );
+
+  const driverCoords = hasLiveDriverLocation
     ? [activeReport.assignedDriver.currentLocation.lat, activeReport.assignedDriver.currentLocation.lng]
     : null;
 
@@ -79,7 +88,7 @@ export default function LiveTrackingCard({ activeReport }) {
             </Popup>
           </Marker>
 
-          {hasDriverAssigned && driverCoords && (
+          {hasLiveDriverLocation && driverCoords && (
             <>
               <Marker position={driverCoords} icon={truckIcon}>
                 <Popup>
@@ -217,6 +226,30 @@ export default function LiveTrackingCard({ activeReport }) {
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--secondary-text)' }}>
                 Your request is recorded. Municipal fleet dispatch will assign a driver according to the collection round.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Live location availability indicator */}
+        {hasDriverAssigned && !hasLiveDriverLocation && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 10,
+            background: 'var(--very-light-mint)',
+            border: '1.5px solid var(--border-light)',
+            borderRadius: 14,
+            padding: '12px 14px',
+            marginBottom: 16
+          }}>
+            <Radio size={16} color="var(--secondary-green)" style={{ marginTop: 2, flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--primary-text)' }}>
+                Live location not available
+              </div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--secondary-text)', marginTop: 2, lineHeight: 1.4 }}>
+                Live tracking activates only when the collection worker starts their round and grants location permission. Your pickup destination is pinned on the map.
               </div>
             </div>
           </div>

@@ -32,18 +32,18 @@ export const getOptimizedRoute = async (req, res) => {
 
     // Driver starting depot
     const depot = {
-      name: 'WasteWise Central Fleet Depot',
+      name: 'Coimbatore Municipal Corporation Central Operations',
       type: 'depot',
-      address: '100 Municipal Drive, Buffalo, NY',
-      coordinates: { lat: 40.8520, lng: -73.8790 }
+      address: 'Town Hall, Big Bazaar Street, Coimbatore, Tamil Nadu 641001',
+      coordinates: { lat: 11.0018, lng: 76.9628 }
     };
 
     // Fallback recycling centre if none exists in database
     const defaultCenter = {
-      name: 'Bronx Composting Station',
+      name: 'Vellalore Integrated Solid Waste Management Facility',
       type: 'dropoff',
-      address: '123 Main Street, New York, NY 10001',
-      coordinates: { lat: 40.8448, lng: -73.8648 }
+      address: 'Vellalore Road, Coimbatore, Tamil Nadu 641111',
+      coordinates: { lat: 10.9634, lng: 77.0125 }
     };
 
     // If no active stops exist, return a clean empty route
@@ -75,7 +75,7 @@ export const getOptimizedRoute = async (req, res) => {
       address: r.location?.address || 'Pickup Point',
       category: r.category,
       quantity: `${r.quantity} ${r.unit}`,
-      coordinates: r.location?.coordinates || { lat: 40.8448, lng: -73.8648 },
+      coordinates: r.location?.coordinates || { lat: 11.0055, lng: 76.9661 },
       type: 'pickup'
     }));
 

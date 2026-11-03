@@ -139,13 +139,13 @@ export default function CollectionScheduleView({ onRequestPickup }) {
             marginBottom: 8
           }}>
             <CalendarIcon size={14} color="var(--secondary-green)" />
-            <span>Municipal Collection Rounds</span>
+            <span>Coimbatore Municipal Rounds</span>
           </div>
           <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--primary-text)', letterSpacing: '-0.3px' }}>
             Collection Schedule
           </h2>
           <p style={{ color: 'var(--secondary-text)', fontSize: '0.86rem', marginTop: 2 }}>
-            Track scheduled curbside collection rounds and municipal segregation drives.
+            Track scheduled curbside collection rounds and Coimbatore municipal segregation drives.
           </p>
         </div>
 
@@ -372,15 +372,15 @@ export default function CollectionScheduleView({ onRequestPickup }) {
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.78rem', color: 'var(--secondary-text)' }}>
               <li style={{ display: 'flex', gap: 6 }}>
                 <span style={{ color: 'var(--secondary-green)' }}>✓</span>
-                <span>Place segregated bins at curbside by 06:45 AM on designated round days.</span>
+                <span>Place segregated wet and dry bins at curbside by 06:30 AM IST on designated ward rounds.</span>
               </li>
               <li style={{ display: 'flex', gap: 6 }}>
                 <span style={{ color: 'var(--secondary-green)' }}>✓</span>
-                <span>Rinse containers and bottles to avoid processing contamination.</span>
+                <span>Rinse containers and bottles to maintain material recyclability.</span>
               </li>
               <li style={{ display: 'flex', gap: 6 }}>
                 <span style={{ color: 'var(--secondary-green)' }}>✓</span>
-                <span>Separate e-waste and batteries from general household recyclables.</span>
+                <span>Hand over hazardous items (batteries, chemicals) during specialized e-waste drives.</span>
               </li>
             </ul>
           </div>

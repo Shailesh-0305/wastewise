@@ -17,6 +17,9 @@ import { api } from '../services/api';
 
 const ALL_MATERIALS = ['All', 'Plastic', 'Organic', 'Electronic', 'Medical', 'Recyclable', 'Metal', 'Glass'];
 
+// Approximate Coimbatore City Centre Coordinates (Gandhipuram / Town Hall area)
+const COIMBATORE_CENTRE = [11.0055, 76.9661];
+
 // Light Mode Custom Pin for Recycling Centres
 const createCentreIcon = (name, isSelected) => {
   return new L.DivIcon({
@@ -69,7 +72,7 @@ function MapRecenter({ coords }) {
   const map = useMap();
   useEffect(() => {
     if (coords && coords[0] && coords[1]) {
-      map.flyTo(coords, 14, { duration: 1.2 });
+      map.flyTo(coords, 13, { duration: 1.2 });
     }
   }, [coords, map]);
   return null;
@@ -84,9 +87,9 @@ export default function RecyclingCentresMap() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Optional User Geolocation
+  // Optional User Geolocation (explicit permission only)
   const [userLocation, setUserLocation] = useState(null);
-  const [geoError, setGeoError] = useState('');
+  const [geoNotice, setGeoNotice] = useState('');
   const [locatingUser, setLocatingUser] = useState(false);
 
   const loadCentres = async () => {
@@ -99,7 +102,6 @@ export default function RecyclingCentresMap() {
       if (res.success && Array.isArray(res.centres)) {
         setCentres(res.centres);
         if (res.centres.length > 0) {
-          // Keep existing selection if still in filtered list, else select first
           setSelectedCentre(prev => {
             if (prev && res.centres.some(c => c._id === prev._id)) return prev;
             return res.centres[0];
@@ -123,22 +125,24 @@ export default function RecyclingCentresMap() {
 
   const handleRequestUserLocation = () => {
     if (!navigator.geolocation) {
-      setGeoError('Geolocation is not supported by your browser.');
+      setGeoNotice('Browser geolocation is not supported on this device.');
       return;
     }
     setLocatingUser(true);
-    setGeoError('');
+    setGeoNotice('');
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setUserLocation([pos.coords.latitude, pos.coords.longitude]);
         setLocatingUser(false);
+        setGeoNotice('Your device location is now pinned on the map.');
       },
       (err) => {
         setLocatingUser(false);
+        // Leave map focused on Coimbatore; do not inject fake location
         if (err.code === err.PERMISSION_DENIED) {
-          setGeoError('Location permission denied. You can still browse all centres on the map.');
+          setGeoNotice('Location permission denied. Map remains focused on Coimbatore city centre.');
         } else {
-          setGeoError('Unable to retrieve your current location.');
+          setGeoNotice('Unable to acquire current location. Map remains focused on Coimbatore.');
         }
       },
       { timeout: 8000 }
@@ -157,12 +161,12 @@ export default function RecyclingCentresMap() {
     ? selectedCentre
     : (filteredCentres[0] || null);
 
-  // Default camera target: selected centre or first centre or fallback world coords
-  const mapCenterCoords = activeCentre?.coordinates
+  // Default camera target: selected centre if available, else user location, else Coimbatore city centre
+  const mapCenterCoords = activeCentre?.coordinates && typeof activeCentre.coordinates.lat === 'number'
     ? [activeCentre.coordinates.lat, activeCentre.coordinates.lng]
     : userLocation
     ? userLocation
-    : [40.7589, -73.9851];
+    : COIMBATORE_CENTRE;
 
   const handleGetDirections = (centre) => {
     if (!centre || !centre.coordinates) return;
@@ -209,27 +213,27 @@ export default function RecyclingCentresMap() {
               marginBottom: 6
             }}>
               <MapPin size={13} color="var(--secondary-green)" />
-              <span>Certified Municipal Facilities</span>
+              <span>Coimbatore, Tamil Nadu · Municipal Network</span>
             </div>
             <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--primary-text)' }}>
               Recycling Centres & Drop-Off Stations
             </h2>
             <p style={{ fontSize: '0.84rem', color: 'var(--secondary-text)', marginTop: 2 }}>
-              Inspect authorized sorting points and obtain direct navigation directions.
+              Locate authorized sorting stations across Coimbatore and obtain direct turn-by-turn directions.
             </p>
           </div>
 
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            {/* Optional Geolocation Trigger */}
+            {/* Explicit Geolocation Action */}
             <button
               onClick={handleRequestUserLocation}
               disabled={locatingUser}
               className="btn-secondary"
               style={{ padding: '8px 14px', fontSize: '0.82rem' }}
-              title="Pin your location on the map"
+              title="Locate your current position on the map"
             >
               <Navigation size={14} color={userLocation ? 'var(--secondary-green)' : 'currentColor'} />
-              <span>{locatingUser ? 'Locating...' : userLocation ? 'Current Location Active' : 'Locate Me'}</span>
+              <span>{locatingUser ? 'Locating...' : userLocation ? 'My Location Active' : 'Use My Location'}</span>
             </button>
 
             {/* Travel Mode Selector */}
@@ -242,7 +246,7 @@ export default function RecyclingCentresMap() {
             }}>
               {[
                 { id: 'drive', label: '🚗 Drive' },
-                { id: 'bike', label: '🚲 Cycle' },
+                { id: 'bike', label: '🚲 Two-Wheeler / Cycle' },
                 { id: 'walk', label: '🚶 Walk' }
               ].map(mode => (
                 <button
@@ -265,11 +269,11 @@ export default function RecyclingCentresMap() {
           </div>
         </div>
 
-        {geoError && (
+        {geoNotice && (
           <div style={{
-            background: '#fffbeb',
-            border: '1px solid #fde68a',
-            color: '#92400e',
+            background: userLocation ? '#f0fdf4' : '#fffbeb',
+            border: `1px solid ${userLocation ? '#bbf7d0' : '#fde68a'}`,
+            color: userLocation ? '#15803d' : '#92400e',
             fontSize: '0.78rem',
             padding: '6px 14px',
             borderRadius: 10,
@@ -279,7 +283,7 @@ export default function RecyclingCentresMap() {
             gap: 8
           }}>
             <AlertCircle size={14} />
-            <span>{geoError}</span>
+            <span>{geoNotice}</span>
           </div>
         )}
 
@@ -299,7 +303,7 @@ export default function RecyclingCentresMap() {
             <Search size={15} color="var(--secondary-green)" />
             <input
               type="text"
-              placeholder="Search station by name or address..."
+              placeholder="Search station by name, locality or road in Coimbatore..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{ border: 'none', background: 'transparent', width: '100%', fontSize: '0.84rem', color: 'var(--primary-text)' }}
@@ -345,7 +349,7 @@ export default function RecyclingCentresMap() {
           {loading ? (
             <div style={{ textAlign: 'center', padding: '40px 10px', color: 'var(--secondary-text)' }}>
               <RotateCw size={24} className="animate-spin" style={{ margin: '0 auto 10px', color: 'var(--secondary-green)' }} />
-              <p style={{ fontSize: '0.86rem', fontWeight: 600 }}>Loading recycling centres...</p>
+              <p style={{ fontSize: '0.86rem', fontWeight: 600 }}>Loading Coimbatore recycling centres...</p>
             </div>
           ) : error ? (
             <div style={{ textAlign: 'center', padding: '30px 16px', background: '#fef2f2', borderRadius: 14, border: '1px solid #fecaca' }}>
@@ -363,8 +367,12 @@ export default function RecyclingCentresMap() {
           ) : centres.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--secondary-text)' }}>
               <MapPin size={28} color="var(--soft-leaf-green)" style={{ margin: '0 auto 10px' }} />
-              <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: 'var(--primary-text)' }}>No Centres in Database</h4>
-              <p style={{ fontSize: '0.78rem', marginTop: 4 }}>No recycling centres have been registered in the system yet.</p>
+              <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: 'var(--primary-text)' }}>
+                No Registered Recycling Centres
+              </h4>
+              <p style={{ fontSize: '0.78rem', marginTop: 4, lineHeight: 1.4 }}>
+                No registered recycling centres are currently available in Coimbatore, Tamil Nadu. Municipal centres will appear here once registered.
+              </p>
             </div>
           ) : filteredCentres.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '30px 16px', color: 'var(--secondary-text)' }}>
@@ -431,7 +439,7 @@ export default function RecyclingCentresMap() {
                     {activeCentre.operatingHours && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--secondary-text)', fontSize: '0.78rem', marginTop: 2 }}>
                         <Clock size={14} color="var(--secondary-green)" />
-                        <span>{activeCentre.operatingHours}</span>
+                        <span>{activeCentre.operatingHours} (IST)</span>
                       </div>
                     )}
                   </div>
@@ -456,7 +464,7 @@ export default function RecyclingCentresMap() {
                       onClick={() => handleGetDirections(activeCentre)}
                       className="btn-primary"
                       style={{ flex: 1, padding: '9px', fontSize: '0.82rem' }}
-                      title="Open turn-by-turn directions in Google Maps"
+                      title="Open directions in Google Maps"
                     >
                       <ExternalLink size={14} /> Get Directions
                     </button>
@@ -475,7 +483,7 @@ export default function RecyclingCentresMap() {
                           color: 'var(--primary-forest)',
                           boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
                         }}
-                        title="Call Station"
+                        title="Call Facility"
                       >
                         <Phone size={15} />
                       </a>
@@ -487,7 +495,7 @@ export default function RecyclingCentresMap() {
               {/* All Stations List */}
               <div>
                 <div style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--secondary-text)', textTransform: 'uppercase', marginBottom: 10, letterSpacing: '0.5px' }}>
-                  Available Stations ({filteredCentres.length})
+                  Coimbatore Recycling Stations ({filteredCentres.length})
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {filteredCentres.map(c => (
@@ -530,29 +538,31 @@ export default function RecyclingCentresMap() {
           )}
         </div>
 
-        {/* Interactive Leaflet Map */}
+        {/* Interactive Leaflet Map (Centered on Coimbatore by default) */}
         <div style={{ position: 'relative', height: '100%', minHeight: 460 }}>
           <MapContainer
             center={mapCenterCoords}
-            zoom={13}
+            zoom={12}
             scrollWheelZoom={true}
             style={{ height: '100%', width: '100%' }}
           >
+            {/* OpenStreetMap Tiles with standard attribution */}
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              maxZoom={19}
             />
 
             <MapRecenter coords={mapCenterCoords} />
 
-            {/* User Real Geolocation Pin (Rendered ONLY if user permitted) */}
+            {/* User Real Geolocation Pin (Rendered ONLY if user explicitly allowed location) */}
             {userLocation && (
               <Marker position={userLocation} icon={userLocationIcon}>
                 <Popup>
                   <div style={{ padding: 4 }}>
                     <strong style={{ color: '#0284c7' }}>Your Current Location</strong>
                     <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-                      Retrieved via browser GPS
+                      Retrieved via device GPS
                     </div>
                   </div>
                 </Popup>
@@ -578,7 +588,7 @@ export default function RecyclingCentresMap() {
                       <div style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>{c.address}</div>
                       {c.operatingHours && (
                         <div style={{ fontSize: 11, color: '#15803d', fontWeight: 600, marginTop: 4 }}>
-                          🕒 {c.operatingHours}
+                          🕒 {c.operatingHours} (IST)
                         </div>
                       )}
                       <button
@@ -591,7 +601,8 @@ export default function RecyclingCentresMap() {
                           borderRadius: 999,
                           fontSize: '0.72rem',
                           fontWeight: 700,
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          display: 'inline-block'
                         }}
                       >
                         Get Directions ↗

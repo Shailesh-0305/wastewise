@@ -526,7 +526,7 @@ export default function AdminDashboard({ onRefreshNeeded }) {
           {/* Interactive Route Leaflet Map */}
           <div style={{ height: 380, borderRadius: 16, overflow: 'hidden', border: '1.5px solid var(--border-light)', marginBottom: 16 }}>
             <MapContainer
-              center={optimizedRoute.waypoints[0]?.coordinates ? [optimizedRoute.waypoints[0].coordinates.lat, optimizedRoute.waypoints[0].coordinates.lng] : [40.8520, -73.8790]}
+              center={optimizedRoute.waypoints[0]?.coordinates ? [optimizedRoute.waypoints[0].coordinates.lat, optimizedRoute.waypoints[0].coordinates.lng] : [11.0055, 76.9661]}
               zoom={13}
               style={{ height: '100%', width: '100%' }}
             >

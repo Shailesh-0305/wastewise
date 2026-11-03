@@ -11,7 +11,7 @@ const wasteReportSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     name: { type: String, required: true },
     email: { type: String },
-    phone: { type: String, default: '+1 (555) 234-5678' }
+    phone: { type: String, default: '+91 98765 43210' }
   },
   category: {
     type: String,
@@ -36,8 +36,8 @@ const wasteReportSchema = new mongoose.Schema({
     address: { type: String, required: true },
     landmark: { type: String, default: '' },
     coordinates: {
-      lat: { type: Number, required: true, default: 42.8864 },
-      lng: { type: Number, required: true, default: -78.8784 }
+      lat: { type: Number, required: true, default: 11.0055 },
+      lng: { type: Number, required: true, default: 76.9661 }
     }
   },
   imageUrl: {
@@ -62,16 +62,18 @@ const wasteReportSchema = new mongoose.Schema({
   },
   assignedDriver: {
     driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    name: { type: String, default: 'Travis Jordan' },
-    phone: { type: String, default: '+1 (555) 948-2831' },
-    driverIdCode: { type: String, default: 'DRV-587-254' },
-    vehiclePlate: { type: String, default: 'NY-EV-7821' },
+    name: { type: String, default: 'Awaiting Driver Assignment' },
+    phone: { type: String, default: '+91 94431 82910' },
+    driverIdCode: { type: String, default: 'CBE-DRV-101' },
+    vehiclePlate: { type: String, default: 'TN-38-BZ-4921' },
     currentLocation: {
-      lat: { type: Number, default: 42.8950 },
-      lng: { type: Number, default: -78.8680 }
+      lat: { type: Number },
+      lng: { type: Number }
     },
-    distanceKm: { type: Number, default: 3.4 },
-    etaMinutes: { type: Number, default: 8 }
+    isLiveStreaming: { type: Boolean, default: false },
+    lastLocationUpdate: { type: Date },
+    distanceKm: { type: Number },
+    etaMinutes: { type: Number }
   },
   notes: {
     type: String,

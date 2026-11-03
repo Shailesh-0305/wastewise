@@ -21,7 +21,7 @@ const generateToken = (user) => {
 
 export const register = async (req, res) => {
   try {
-    const { name, email, password, phone, street, city } = req.body;
+    const { name, email, password, phone, street, locality, city, state, zip } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({
@@ -52,11 +52,13 @@ export const register = async (req, res) => {
         email: normalizedEmail,
         password,
         role,
-        phone: phone || '+1 (555) 234-5678',
+        phone: phone || '+91 98765 43210',
         address: {
-          street: street || 'Lake Star Dist. No48',
-          city: city || 'Buffalo',
-          state: 'NY'
+          street: street || '42 Cross Cut Road',
+          locality: locality || 'Gandhipuram',
+          city: city || 'Coimbatore',
+          state: state || 'Tamil Nadu',
+          zip: zip || '641001'
         }
       });
 

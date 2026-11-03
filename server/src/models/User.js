@@ -26,16 +26,16 @@ const userSchema = new mongoose.Schema({
   },
   phone: {
     type: String,
-    default: '+1 (555) 234-5678'
+    default: '+91 98765 43210'
   },
   address: {
-    street: { type: String, default: 'Lake Star Dist. No48' },
-    city: { type: String, default: 'Buffalo' },
-    state: { type: String, default: 'NY' },
-    zip: { type: String, default: '14201' },
+    street: { type: String, default: '42 Cross Cut Road' },
+    city: { type: String, default: 'Coimbatore' },
+    state: { type: String, default: 'Tamil Nadu' },
+    zip: { type: String, default: '641001' },
     coordinates: {
-      lat: { type: Number, default: 42.8864 },
-      lng: { type: Number, default: -78.8784 }
+      lat: { type: Number, default: 11.0055 },
+      lng: { type: Number, default: 76.9661 }
     }
   },
   ecoPoints: {

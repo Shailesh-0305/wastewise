@@ -53,7 +53,7 @@ export const createReport = async (req, res) => {
     const userId = req.user?.id;
     let citizenName = req.user?.name || 'Citizen User';
     let citizenEmail = req.user?.email || '';
-    let citizenPhone = '+1 (555) 234-5678';
+    let citizenPhone = '+91 98765 43210';
 
     if (userId && mongoose.Types.ObjectId.isValid(userId)) {
       const userDoc = await User.findById(userId);
@@ -67,8 +67,8 @@ export const createReport = async (req, res) => {
     const trackingId = 'WW-' + Math.floor(10000 + Math.random() * 90000);
 
     const coordinates = {
-      lat: Number(lat) || 40.8448,
-      lng: Number(lng) || -73.8648
+      lat: Number(lat) || 11.0055,
+      lng: Number(lng) || 76.9661
     };
 
     const newReportData = {
@@ -398,12 +398,12 @@ export const assignDriver = async (req, res) => {
     }
 
     const driverData = {
-      name: driverName || 'Travis Jordan',
-      phone: phone || '+1 (587) 254-2365',
-      driverIdCode: 'DRV-587-254-2365',
-      vehiclePlate: vehiclePlate || 'NY-EV-7821',
-      distanceKm: Number(distanceKm) || 4.2,
-      etaMinutes: Number(etaMinutes) || 10
+      name: driverName || 'Karthik Raja',
+      phone: phone || '+91 94431 82910',
+      driverIdCode: 'CBE-DRV-104',
+      vehiclePlate: vehiclePlate || 'TN-38-BZ-4921',
+      distanceKm: Number(distanceKm) || 3.5,
+      etaMinutes: Number(etaMinutes) || 15
     };
 
     const updated = await WasteReport.findOneAndUpdate(

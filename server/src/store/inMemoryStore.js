@@ -1,103 +1,103 @@
-// In-memory data store for WasteWise with realistic pre-populated data matching the UI images
+// In-memory data store for WasteWise localised for Coimbatore, Tamil Nadu, India
 
 export const initialCentres = [
   {
     _id: 'c1',
-    name: 'Bronx Composting Station',
-    address: '123 Main Street, New York, NY 10001',
-    city: 'New York',
-    coordinates: { lat: 40.8448, lng: -73.8648 },
-    operatingHours: '00:00 - 23:59 (24/7)',
-    phone: '+1 (212) 555-0143',
+    name: 'Vellalore Integrated Solid Waste Management Facility',
+    address: 'Vellalore Road, Podanur Post',
+    city: 'Coimbatore',
+    coordinates: { lat: 10.9634, lng: 77.0125 },
+    operatingHours: '06:00 - 18:00 (IST)',
+    phone: '+91 422 241 0125',
     acceptedMaterials: ['Organic', 'Plastic', 'Recyclable'],
-    materialSpecs: 'Compost, Food Scraps, Yard Waste, Biodegradable Bags',
+    materialSpecs: 'Wet Kitchen Waste, Compost, Yard Trimmings, Clean Segregated Plastics',
     imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=600&q=80',
+    rating: 4.8,
+    distanceTimes: { walkMin: 35, bikeMin: 18, driveMin: 10 }
+  },
+  {
+    _id: 'c2',
+    name: 'Peelamedu E-Waste & Electronics SafeDrop',
+    address: 'Avinashi Road, Near PSG Tech, Peelamedu',
+    city: 'Coimbatore',
+    coordinates: { lat: 11.0285, lng: 77.0028 },
+    operatingHours: '09:00 - 18:00 (IST)',
+    phone: '+91 422 257 0188',
+    acceptedMaterials: ['Electronic', 'Batteries', 'Metal'],
+    materialSpecs: 'Computer Peripherals, Lithium/Lead-Acid Batteries, Copper Cables, PCB Units',
+    imageUrl: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=600&q=80',
     rating: 4.9,
     distanceTimes: { walkMin: 20, bikeMin: 10, driveMin: 5 }
   },
   {
-    _id: 'c2',
-    name: 'Bronx Battery & E-Waste Station',
-    address: '8 Main Street, New York, NY 10301',
-    city: 'New York',
-    coordinates: { lat: 40.8520, lng: -73.8790 },
-    operatingHours: '08:00 - 18:00',
-    phone: '+1 (212) 555-0188',
-    acceptedMaterials: ['Electronic', 'Batteries', 'Metal'],
-    materialSpecs: 'AA, Lithium-Ion, NiMH, Laptops, Circuit Boards, Cables',
-    imageUrl: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=600&q=80',
-    rating: 4.8,
-    distanceTimes: { walkMin: 25, bikeMin: 12, driveMin: 6 }
-  },
-  {
     _id: 'c3',
-    name: 'Manhattan Plastic & Glass Recovery',
-    address: '135 Main Street, New York, NY 10001',
-    city: 'New York',
-    coordinates: { lat: 40.7589, lng: -73.9851 },
-    operatingHours: '07:00 - 20:00',
-    phone: '+1 (212) 555-0199',
+    name: 'RS Puram Plastic & Glass Segregation Station',
+    address: 'Diwan Bahadur Road, RS Puram West',
+    city: 'Coimbatore',
+    coordinates: { lat: 11.0086, lng: 76.9497 },
+    operatingHours: '07:00 - 19:00 (IST)',
+    phone: '+91 422 254 0199',
     acceptedMaterials: ['Plastic', 'Glass', 'Recyclable'],
-    materialSpecs: 'PET, HDPE, LDPE, Clear/Colored Glass Bottles, Jars',
+    materialSpecs: 'PET Bottles, HDPE Drums, LDPE Wraps, Beverage & Pickle Glass Jars',
     imageUrl: 'https://images.unsplash.com/photo-1528323273322-d81458248d40?auto=format&fit=crop&w=600&q=80',
     rating: 4.7,
     distanceTimes: { walkMin: 15, bikeMin: 8, driveMin: 4 }
   },
   {
     _id: 'c4',
-    name: 'Brooklyn Medical & Hazardous SafeDrop',
-    address: '42 Atlantic Ave, Brooklyn, NY 11201',
-    city: 'New York',
-    coordinates: { lat: 40.6925, lng: -73.9904 },
-    operatingHours: '09:00 - 17:00',
-    phone: '+1 (718) 555-0245',
-    acceptedMaterials: ['Medical'],
-    materialSpecs: 'Expired Medicines, Safe Sharps Containers, Bio-PPE',
+    name: 'Ukkadam Secondary Resource Recovery Centre',
+    address: 'Sungam Bypass Road, Ukkadam',
+    city: 'Coimbatore',
+    coordinates: { lat: 10.9880, lng: 76.9630 },
+    operatingHours: '08:00 - 17:30 (IST)',
+    phone: '+91 422 230 0245',
+    acceptedMaterials: ['Medical', 'Metal', 'Recyclable'],
+    materialSpecs: 'Sanitary Waste, Safe Sharps Containers, Metal Scraps & Tin Cans',
     imageUrl: 'https://images.unsplash.com/photo-1584744982491-665216d95f8b?auto=format&fit=crop&w=600&q=80',
-    rating: 4.9,
-    distanceTimes: { walkMin: 30, bikeMin: 15, driveMin: 9 }
+    rating: 4.8,
+    distanceTimes: { walkMin: 25, bikeMin: 12, driveMin: 7 }
   }
 ];
 
 export const initialSchedules = [
   {
     _id: 's1',
-    title: 'Zone North - Organic & Composting Round',
-    zone: 'District 4 - Metro North',
+    title: 'Ward 24 (Peelamedu) - Curbside Organic & Wet Waste Round',
+    zone: 'East Zone - Ward 24, Peelamedu',
     date: new Date(Date.now() + 86400000).toISOString(),
-    dayOfWeek: 'Tomorrow (Thu)',
-    timeWindow: '07:00 AM - 09:00 AM',
-    categories: ['Organic', 'General'],
-    driverName: 'Muhammad Gilang Pratama',
-    vehicleId: 'TRK-GREEN-08',
+    dayOfWeek: 'Tomorrow',
+    timeWindow: '06:30 AM - 09:30 AM (IST)',
+    categories: ['Organic'],
+    driverName: 'Senthil Kumar',
+    vehicleId: 'TN-38-BZ-4921',
     status: 'Upcoming',
-    notes: 'Please place organic food scraps and green bins at the curb by 6:45 AM'
+    notes: 'Please keep green wet-waste bins segregated at doorstep by 06:30 AM'
   },
   {
     _id: 's2',
-    title: 'Zone Central - Plastic & Recyclables Drive',
-    zone: 'District 2 - Central Ward',
+    title: 'Ward 58 (RS Puram) - Dry Recyclables & Plastic Collection',
+    zone: 'West Zone - Ward 58, RS Puram',
     date: new Date(Date.now() + 172800000).toISOString(),
     dayOfWeek: 'Friday',
-    timeWindow: '09:00 AM - 12:00 PM',
+    timeWindow: '08:30 AM - 12:30 PM (IST)',
     categories: ['Recycling', 'Plastic', 'Metal', 'Glass'],
-    driverName: 'Travis Jordan',
-    vehicleId: 'TRK-RECYCLE-12',
+    driverName: 'Karthik Raja',
+    vehicleId: 'TN-38-CX-1102',
     status: 'Upcoming',
-    notes: 'Rinse plastic bottles and crush cartons before setting out'
+    notes: 'Rinse milk pouches, plastic bottles, and paper cartons before handover'
   },
   {
     _id: 's3',
-    title: 'Zone East - Electronics & Hazardous Special Drop',
-    zone: 'District 7 - East Borough',
+    title: 'Ward 72 (Gandhipuram & Town Hall) - Hazardous & E-Waste Drive',
+    zone: 'Central Zone - Ward 72, Gandhipuram',
     date: new Date(Date.now() + 259200000).toISOString(),
     dayOfWeek: 'Saturday',
-    timeWindow: '10:00 AM - 02:00 PM',
+    timeWindow: '09:00 AM - 02:00 PM (IST)',
     categories: ['Electronic', 'Medical'],
-    driverName: 'Elena Rostova',
-    vehicleId: 'VAN-HAZMAT-03',
+    driverName: 'Muruganandam',
+    vehicleId: 'TN-38-HAZ-04',
     status: 'Upcoming',
-    notes: 'Safely box old laptops, lithium batteries, and electronics'
+    notes: 'Safely box old cellphones, computer cords, tube lights and household batteries'
   }
 ];
 
@@ -107,18 +107,18 @@ export const initialReports = [
     trackingId: 'WW-84920',
     citizen: {
       userId: 'u1',
-      name: 'Alex Navillera',
-      email: 'alex@example.com',
-      phone: '+1 (555) 234-5678'
+      name: 'Aarav Sundaram',
+      email: 'aarav@example.com',
+      phone: '+91 98765 43210'
     },
     category: 'Plastic',
-    subCategory: 'PETE 1 Plastic Bottles & Food Containers',
+    subCategory: 'PETE 1 Water & Beverage Bottles',
     quantity: 2,
     unit: 'bags',
     location: {
-      address: 'Lake Star Dist. No48, Buffalo, NY, USA',
-      landmark: 'Near Central Green Park Entrance',
-      coordinates: { lat: 40.8448, lng: -73.8648 }
+      address: '42 Cross Cut Road, Gandhipuram, Coimbatore, Tamil Nadu',
+      landmark: 'Opposite VOC Park Entrance',
+      coordinates: { lat: 11.0183, lng: 76.9691 }
     },
     imageUrl: 'https://images.unsplash.com/photo-1526951521990-620dc14c214b?auto=format&fit=crop&w=600&q=80',
     aiClassification: {
@@ -132,23 +132,23 @@ export const initialReports = [
       dayName: 'Tomorrow',
       timeSlot: '07:00 AM - 09:00 AM'
     },
-    status: 'In Progress',
+    status: 'Assigned',
     assignedDriver: {
       driverId: 'd1',
-      name: 'Travis Jordan',
-      phone: '+1 (587) 254-2365',
-      driverIdCode: 'DRV-587-254-2365',
-      vehiclePlate: 'NY-EV-7821',
-      currentLocation: { lat: 40.8520, lng: -73.8720 },
-      distanceKm: 3.4,
-      etaMinutes: 8
+      name: 'Karthik Raja',
+      phone: '+91 94431 82910',
+      driverIdCode: 'CBE-DRV-104',
+      vehiclePlate: 'TN-38-BZ-4921',
+      isLiveStreaming: false,
+      currentLocation: null,
+      distanceKm: null,
+      etaMinutes: null
     },
-    notes: 'Bottles crushed and packed in recyclable paper bag as per GreenCove guide.',
+    notes: 'Plastic bottles sorted and compacted in recyclable bags.',
     timeline: [
       { status: 'Reported', timestamp: new Date(Date.now() - 7200000).toISOString(), note: 'Citizen submitted waste pickup request' },
-      { status: 'Confirmed', timestamp: new Date(Date.now() - 5400000).toISOString(), note: 'Pickup verified by WasteWise Smart System' },
-      { status: 'Assigned', timestamp: new Date(Date.now() - 3600000).toISOString(), note: 'Assigned to Courier Travis Jordan (EV-7821)' },
-      { status: 'In Progress', timestamp: new Date(Date.now() - 1200000).toISOString(), note: 'Driver is on the way to pickup location' }
+      { status: 'Confirmed', timestamp: new Date(Date.now() - 5400000).toISOString(), note: 'Pickup verified by Coimbatore Municipal Smart System' },
+      { status: 'Assigned', timestamp: new Date(Date.now() - 3600000).toISOString(), note: 'Assigned to Municipal Courier Karthik Raja (TN-38-BZ-4921)' }
     ],
     createdAt: new Date(Date.now() - 7200000).toISOString()
   },
@@ -157,18 +157,18 @@ export const initialReports = [
     trackingId: 'WW-67104',
     citizen: {
       userId: 'u1',
-      name: 'Alex Navillera',
-      email: 'alex@example.com',
-      phone: '+1 (555) 234-5678'
+      name: 'Aarav Sundaram',
+      email: 'aarav@example.com',
+      phone: '+91 98765 43210'
     },
     category: 'Electronic',
-    subCategory: 'Dead AA Batteries & Old Monitor',
+    subCategory: 'Dead Batteries & Old Computer Keyboard',
     quantity: 1,
     unit: 'bags',
     location: {
-      address: 'Jackson Road Lane no 7, Buffalo, NY',
-      landmark: 'Green Bin Recycle Booth #4',
-      coordinates: { lat: 40.8580, lng: -73.8610 }
+      address: '15 DB Road, RS Puram, Coimbatore, Tamil Nadu',
+      landmark: 'Near Flower Market',
+      coordinates: { lat: 11.0086, lng: 76.9497 }
     },
     imageUrl: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?auto=format&fit=crop&w=600&q=80',
     aiClassification: {
@@ -180,23 +180,22 @@ export const initialReports = [
     preferredSlot: {
       date: new Date(Date.now() + 172800000).toISOString(),
       dayName: 'Friday',
-      timeSlot: '10:00 AM - 12:00 PM'
+      timeSlot: '09:00 AM - 12:00 PM'
     },
-    status: 'Assigned',
+    status: 'Reported',
     assignedDriver: {
-      name: 'Elena Rostova',
-      phone: '+1 (555) 782-9912',
-      driverIdCode: 'DRV-782-991',
-      vehiclePlate: 'NY-EV-3310',
-      currentLocation: { lat: 40.8600, lng: -73.8600 },
-      distanceKm: 5.1,
-      etaMinutes: 14
+      name: 'Awaiting Driver Assignment',
+      phone: '+91 94431 82910',
+      driverIdCode: 'CBE-DRV-101',
+      vehiclePlate: 'TN-38-BZ-4921',
+      isLiveStreaming: false,
+      currentLocation: null,
+      distanceKm: null,
+      etaMinutes: null
     },
-    notes: 'Safe container used for lithium batteries.',
+    notes: 'Safe container used for household batteries.',
     timeline: [
-      { status: 'Reported', timestamp: new Date(Date.now() - 14400000).toISOString(), note: 'E-waste report received' },
-      { status: 'Confirmed', timestamp: new Date(Date.now() - 10800000).toISOString(), note: 'Scheduled for specialized recycling facility' },
-      { status: 'Assigned', timestamp: new Date(Date.now() - 7200000).toISOString(), note: 'Assigned to driver Elena Rostova' }
+      { status: 'Reported', timestamp: new Date(Date.now() - 14400000).toISOString(), note: 'E-waste request logged in Coimbatore West Zone' }
     ],
     createdAt: new Date(Date.now() - 14400000).toISOString()
   },
@@ -205,18 +204,18 @@ export const initialReports = [
     trackingId: 'WW-39211',
     citizen: {
       userId: 'u2',
-      name: 'David Miller',
-      email: 'david@example.com',
-      phone: '+1 (555) 345-9821'
+      name: 'Priya Ramasamy',
+      email: 'priya@example.com',
+      phone: '+91 97890 12345'
     },
     category: 'Organic',
-    subCategory: 'Compostable Vegetable & Fruit Scraps',
-    quantity: 5,
+    subCategory: 'Compostable Fruit & Vegetable Peels',
+    quantity: 4,
     unit: 'kg',
     location: {
-      address: '24 Pine Street, Buffalo, NY',
-      landmark: 'Next to Community Garden',
-      coordinates: { lat: 40.8390, lng: -73.8710 }
+      address: '88 Avinashi Road, Peelamedu, Coimbatore, Tamil Nadu',
+      landmark: 'Opposite PSG Tech Main Gate',
+      coordinates: { lat: 11.0285, lng: 77.0028 }
     },
     imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=600&q=80',
     aiClassification: {
@@ -228,23 +227,24 @@ export const initialReports = [
     preferredSlot: {
       date: new Date().toISOString(),
       dayName: 'Today',
-      timeSlot: '02:00 PM - 05:00 PM'
+      timeSlot: '07:00 AM - 09:00 AM'
     },
     status: 'Collected',
     assignedDriver: {
-      name: 'Muhammad Gilang Pratama',
-      phone: '+1 (555) 431-8921',
-      driverIdCode: 'DRV-431-892',
-      vehiclePlate: 'TRK-GREEN-08'
+      name: 'Senthil Kumar',
+      phone: '+91 94420 55123',
+      driverIdCode: 'CBE-DRV-088',
+      vehiclePlate: 'TN-38-CX-1102',
+      isLiveStreaming: false,
+      currentLocation: null
     },
-    notes: 'Collected and transported to Bronx Composting Station.',
+    notes: 'Collected and transported to Vellalore Integrated Waste Facility.',
     timeline: [
-      { status: 'Reported', timestamp: new Date(Date.now() - 86400000).toISOString(), note: 'Reported by citizen' },
-      { status: 'Confirmed', timestamp: new Date(Date.now() - 72000000).toISOString(), note: 'Confirmed' },
-      { status: 'Assigned', timestamp: new Date(Date.now() - 54000000).toISOString(), note: 'Assigned' },
-      { status: 'In Progress', timestamp: new Date(Date.now() - 36000000).toISOString(), note: 'Driver en route' },
-      { status: 'Collected', timestamp: new Date(Date.now() - 18000000).toISOString(), note: 'Waste successfully picked up' },
-      { status: 'Recycled', timestamp: new Date(Date.now() - 9000000).toISOString(), note: 'Composted at Bronx facility' }
+      { status: 'Reported', timestamp: new Date(Date.now() - 86400000).toISOString(), note: 'Reported by resident' },
+      { status: 'Confirmed', timestamp: new Date(Date.now() - 72000000).toISOString(), note: 'Verified by zone supervisor' },
+      { status: 'Assigned', timestamp: new Date(Date.now() - 54000000).toISOString(), note: 'Assigned to driver Senthil Kumar' },
+      { status: 'Collected', timestamp: new Date(Date.now() - 18000000).toISOString(), note: 'Waste collected from curbside' },
+      { status: 'Recycled', timestamp: new Date(Date.now() - 9000000).toISOString(), note: 'Processed at Vellalore Composting Facility' }
     ],
     createdAt: new Date(Date.now() - 86400000).toISOString()
   }
@@ -253,17 +253,18 @@ export const initialReports = [
 export const initialUsers = [
   {
     _id: 'u1',
-    name: 'Alex Navillera',
-    email: 'alex@example.com',
+    name: 'Aarav Sundaram',
+    email: 'aarav@example.com',
     password: '$2a$10$.Q4S33Cx3PdZ2GeCcM43PuF8NDHzV0D/wa8C/qOI2bGUjB0qlbUqu',
     role: 'citizen',
-    phone: '+1 (555) 234-5678',
+    phone: '+91 98765 43210',
     address: {
-      street: 'Lake Star Dist. No48',
-      city: 'Buffalo',
-      state: 'NY',
-      zip: '14201',
-      coordinates: { lat: 40.8448, lng: -73.8648 }
+      street: '42 Cross Cut Road',
+      locality: 'Gandhipuram',
+      city: 'Coimbatore',
+      state: 'Tamil Nadu',
+      zip: '641001',
+      coordinates: { lat: 11.0183, lng: 76.9691 }
     },
     ecoPoints: 1250,
     co2SavedKg: 24.8,
@@ -272,12 +273,18 @@ export const initialUsers = [
   },
   {
     _id: 'u2',
-    name: 'Travis Jordan',
-    email: 'travis@wastewise.org',
+    name: 'Karthik Raja',
+    email: 'karthik@wastewise.org',
     password: '$2a$10$SbtmOigOzLQYCjEniP28bOdq.ql3kMYV4STJ.RjdMkEWK8z5qHmwe',
     role: 'driver',
-    phone: '+1 (587) 254-2365',
-    address: { street: 'Depot 4 - Station North', city: 'Buffalo', state: 'NY' },
+    phone: '+91 94431 82910',
+    address: { 
+      street: 'Central Fleet Depot, Town Hall', 
+      locality: 'Town Hall',
+      city: 'Coimbatore', 
+      state: 'Tamil Nadu',
+      zip: '641001' 
+    },
     ecoPoints: 4800,
     co2SavedKg: 182.5,
     ecoLevel: 'Eco Champion Gold',
@@ -285,12 +292,18 @@ export const initialUsers = [
   },
   {
     _id: 'u3',
-    name: 'Admin Supervisor',
+    name: 'Coimbatore Municipal Supervisor',
     email: 'admin@wastewise.org',
     password: '$2a$10$2U/JWMhZq2JQ4yWalegGxuI08YsQ0gWFkY/HrDMYSgfXHOzkErWJq',
     role: 'admin',
-    phone: '+1 (555) 999-0000',
-    address: { street: 'City Municipal HQ', city: 'Buffalo', state: 'NY' },
+    phone: '+91 422 230 0100',
+    address: { 
+      street: 'CCMC Headquarters, Big Bazaar St', 
+      locality: 'Town Hall',
+      city: 'Coimbatore', 
+      state: 'Tamil Nadu',
+      zip: '641001' 
+    },
     ecoPoints: 9999,
     co2SavedKg: 850.0,
     ecoLevel: 'City Guardian Master',

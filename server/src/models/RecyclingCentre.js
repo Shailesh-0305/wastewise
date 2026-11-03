@@ -12,7 +12,7 @@ const recyclingCentreSchema = new mongoose.Schema({
   },
   city: {
     type: String,
-    default: 'New York'
+    default: 'Coimbatore'
   },
   coordinates: {
     lat: { type: Number, required: true },
@@ -20,11 +20,11 @@ const recyclingCentreSchema = new mongoose.Schema({
   },
   operatingHours: {
     type: String,
-    default: '00:00 - 23:59 (24/7)'
+    default: '08:00 - 18:00 (IST)'
   },
   phone: {
     type: String,
-    default: '+1 (212) 555-0199'
+    default: '+91 422 230 0199'
   },
   acceptedMaterials: [
     {

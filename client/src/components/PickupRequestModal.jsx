@@ -69,8 +69,10 @@ export default function PickupRequestModal({ isOpen, onClose, onReportCreated, c
     if (currentUser?.address) {
       const parts = [];
       if (currentUser.address.street) parts.push(currentUser.address.street);
+      if (currentUser.address.locality) parts.push(currentUser.address.locality);
       if (currentUser.address.city) parts.push(currentUser.address.city);
       if (currentUser.address.state) parts.push(currentUser.address.state);
+      if (currentUser.address.zip) parts.push(currentUser.address.zip);
       if (parts.length > 0) {
         setAddress(parts.join(', '));
       }
@@ -99,9 +101,9 @@ export default function PickupRequestModal({ isOpen, onClose, onReportCreated, c
         setIsLocating(false);
         // Do NOT insert fallback coordinates when denied
         if (err.code === err.PERMISSION_DENIED) {
-          setGeoNotice('Location access denied. Please type your pickup address manually.');
+          setGeoNotice('Location access denied. Please type your Coimbatore address manually.');
         } else {
-          setGeoNotice('Unable to acquire GPS location. Please enter your address manually.');
+          setGeoNotice('Unable to acquire GPS location. Please enter your Coimbatore address manually.');
         }
       },
       { timeout: 8000 }
@@ -129,8 +131,8 @@ export default function PickupRequestModal({ isOpen, onClose, onReportCreated, c
         unit,
         address: address.trim(),
         landmark: landmark.trim(),
-        lat: lat || 40.8448,
-        lng: lng || -73.8648,
+        lat: lat || 11.0055,
+        lng: lng || 76.9661,
         preferredDay: chosenOption ? chosenOption.dayName : 'Upcoming',
         preferredSlot: pickupTime,
         notes: notes.trim()
@@ -368,9 +370,9 @@ export default function PickupRequestModal({ isOpen, onClose, onReportCreated, c
                   color: 'var(--primary-text)'
                 }}
               >
-                <option value="07:00 AM - 09:00 AM">07:00 AM - 09:00 AM (Morning)</option>
-                <option value="09:00 AM - 12:00 PM">09:00 AM - 12:00 PM (Midday)</option>
-                <option value="02:00 PM - 05:00 PM">02:00 PM - 05:00 PM (Afternoon)</option>
+                <option value="07:00 AM - 09:00 AM">07:00 AM - 09:00 AM (Morning IST)</option>
+                <option value="09:00 AM - 12:00 PM">09:00 AM - 12:00 PM (Midday IST)</option>
+                <option value="02:00 PM - 05:00 PM">02:00 PM - 05:00 PM (Afternoon IST)</option>
               </select>
             </div>
           </div>
@@ -402,7 +404,7 @@ export default function PickupRequestModal({ isOpen, onClose, onReportCreated, c
             <input 
               type="text"
               required
-              placeholder="Enter your street address, building or house number"
+              placeholder="Door / Flat No., Street, Locality (e.g. 42 Cross Cut Rd, Gandhipuram)"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               style={{
@@ -430,7 +432,7 @@ export default function PickupRequestModal({ isOpen, onClose, onReportCreated, c
             </label>
             <input 
               type="text"
-              placeholder="e.g. Opposite the community park, green front gate"
+              placeholder="e.g. Near Gandhipuram Bus Stand, Opp. VOC Park"
               value={landmark}
               onChange={(e) => setLandmark(e.target.value)}
               style={{

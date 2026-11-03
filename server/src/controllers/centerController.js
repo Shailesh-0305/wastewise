@@ -51,11 +51,11 @@ export const createCentre = async (req, res) => {
     const {
       name,
       address,
-      city = 'New York',
-      lat = 40.8448,
-      lng = -73.8648,
-      operatingHours = '08:00 - 20:00',
-      phone = '+1 (212) 555-0100',
+      city = 'Coimbatore',
+      lat = 11.0055,
+      lng = 76.9661,
+      operatingHours = '08:00 - 18:00 (IST)',
+      phone = '+91 422 230 0100',
       acceptedMaterials = ['Plastic', 'Recyclable'],
       materialSpecs = 'Standard recyclables',
       imageUrl = ''

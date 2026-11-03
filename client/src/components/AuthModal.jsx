@@ -9,7 +9,10 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultTab =
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [street, setStreet] = useState('');
-  const [city, setCity] = useState('');
+  const [locality, setLocality] = useState('');
+  const [pinCode, setPinCode] = useState('');
+  const [city, setCity] = useState('Coimbatore');
+  const [state] = useState('Tamil Nadu');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -39,9 +42,12 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultTab =
           name: name.trim(),
           email: email.trim().toLowerCase(),
           password,
-          phone: phone.trim(),
+          phone: phone.trim() ? (phone.trim().startsWith('+91') ? phone.trim() : `+91 ${phone.trim().replace(/^\+?91\s*/, '')}`) : '+91 98765 43210',
           street: street.trim(),
-          city: city.trim()
+          locality: locality.trim(),
+          city: city.trim() || 'Coimbatore',
+          state: state.trim() || 'Tamil Nadu',
+          zip: pinCode.trim() || '641001'
         });
         if (res.success) {
           setSuccessMsg('Account registered successfully!');
@@ -236,13 +242,13 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultTab =
             <>
               <div>
                 <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: 'var(--secondary-text)', textTransform: 'uppercase', marginBottom: 5 }}>
-                  Phone Number
+                  Mobile Number (India +91)
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1.5px solid var(--border-light)', borderRadius: 12, padding: '8px 12px' }}>
                   <Phone size={16} color="var(--secondary-green)" />
                   <input
                     type="tel"
-                    placeholder="+1 (555) 000-0000"
+                    placeholder="+91 98765 43210"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     style={{ border: 'none', background: 'transparent', width: '100%', fontSize: '0.86rem', color: 'var(--primary-text)' }}
@@ -250,32 +256,73 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultTab =
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: 'var(--secondary-text)', textTransform: 'uppercase', marginBottom: 5 }}>
-                    Street Address
-                  </label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1.5px solid var(--border-light)', borderRadius: 12, padding: '8px 12px' }}>
-                    <MapPin size={16} color="var(--secondary-green)" />
-                    <input
-                      type="text"
-                      placeholder="Street name & number"
-                      value={street}
-                      onChange={(e) => setStreet(e.target.value)}
-                      style={{ border: 'none', background: 'transparent', width: '100%', fontSize: '0.86rem', color: 'var(--primary-text)' }}
-                    />
-                  </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: 'var(--secondary-text)', textTransform: 'uppercase', marginBottom: 5 }}>
+                  Street / Door No.
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1.5px solid var(--border-light)', borderRadius: 12, padding: '8px 12px' }}>
+                  <MapPin size={16} color="var(--secondary-green)" />
+                  <input
+                    type="text"
+                    placeholder="e.g. 42 Cross Cut Road"
+                    value={street}
+                    onChange={(e) => setStreet(e.target.value)}
+                    style={{ border: 'none', background: 'transparent', width: '100%', fontSize: '0.86rem', color: 'var(--primary-text)' }}
+                  />
                 </div>
+              </div>
 
+              <div>
+                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: 'var(--secondary-text)', textTransform: 'uppercase', marginBottom: 5 }}>
+                  Locality / Area
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. RS Puram, Gandhipuram, Peelamedu"
+                  value={locality}
+                  onChange={(e) => setLocality(e.target.value)}
+                  style={{
+                    border: '1.5px solid var(--border-light)',
+                    borderRadius: 12,
+                    padding: '8px 12px',
+                    fontSize: '0.86rem',
+                    width: '100%',
+                    color: 'var(--primary-text)'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: 'var(--secondary-text)', textTransform: 'uppercase', marginBottom: 5 }}>
-                    City
+                    City (Default)
                   </label>
                   <input
                     type="text"
                     placeholder="City"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
+                    style={{
+                      border: '1.5px solid var(--border-light)',
+                      borderRadius: 12,
+                      padding: '8px 12px',
+                      fontSize: '0.86rem',
+                      width: '100%',
+                      color: 'var(--primary-text)'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: 'var(--secondary-text)', textTransform: 'uppercase', marginBottom: 5 }}>
+                    PIN Code
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    placeholder="641001"
+                    value={pinCode}
+                    onChange={(e) => setPinCode(e.target.value)}
                     style={{
                       border: '1.5px solid var(--border-light)',
                       borderRadius: 12,

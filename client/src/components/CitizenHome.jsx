@@ -53,9 +53,10 @@ export default function CitizenHome({
     if (!currentUser) return null;
     const parts = [];
     if (currentUser.address?.street) parts.push(currentUser.address.street);
-    if (currentUser.address?.city) parts.push(currentUser.address.city);
-    if (currentUser.address?.state) parts.push(currentUser.address.state);
-    return parts.length > 0 ? parts.join(', ') : 'Location on profile';
+    if (currentUser.address?.locality) parts.push(currentUser.address.locality);
+    parts.push(currentUser.address?.city || 'Coimbatore');
+    parts.push(currentUser.address?.state || 'Tamil Nadu');
+    return parts.join(', ');
   };
 
   return (
@@ -103,7 +104,10 @@ export default function CitizenHome({
                       <span>{getUserLocationText()}</span>
                     </>
                   ) : (
-                    <span>Smart Municipal Waste Management & Segregation Portal</span>
+                    <>
+                      <MapPin size={13} color="var(--secondary-green)" />
+                      <span>Coimbatore, Tamil Nadu · Municipal Waste Portal</span>
+                    </>
                   )}
                 </div>
               </div>
@@ -186,7 +190,7 @@ export default function CitizenHome({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search recyclable materials, guidelines, or plastic resin codes..."
+                placeholder="Search recyclable materials, guidelines, or Coimbatore municipal rounds..."
                 style={{
                   border: 'none',
                   background: 'transparent',
