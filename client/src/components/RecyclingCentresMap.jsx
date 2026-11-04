@@ -6,13 +6,14 @@ import {
   Phone, 
   ExternalLink, 
   Star, 
-  ChevronRight,
-  RotateCw,
-  Navigation,
-  AlertCircle
+  ChevronRight, 
+  RotateCw, 
+  Navigation, 
+  AlertCircle 
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { api } from '../services/api';
 
 const ALL_MATERIALS = ['All', 'Plastic', 'Organic', 'Electronic', 'Medical', 'Recyclable', 'Metal', 'Glass'];
@@ -177,7 +178,9 @@ export default function RecyclingCentresMap() {
     const nameMatch = (c.name || '').toLowerCase().includes(s);
     const addrMatch = (c.address || '').toLowerCase().includes(s);
     const cityMatch = (c.city || '').toLowerCase().includes(s);
-    return nameMatch || addrMatch || cityMatch;
+    const localityMatch = (c.locality || '').toLowerCase().includes(s);
+    const wardMatch = (c.ward || '').toLowerCase().includes(s);
+    return nameMatch || addrMatch || cityMatch || localityMatch || wardMatch;
   });
 
   const activeCentre = selectedCentre && filteredCentres.some(c => c._id === selectedCentre._id)

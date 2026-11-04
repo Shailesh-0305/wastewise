@@ -104,10 +104,20 @@ export default function FacilitiesModule({ initialTab = 'recycling-centres', toa
     loadFacilities();
   }, [loadFacilities]);
 
+  const getCoordinates = (facility) => {
+    if (facility.coordinates && Number.isFinite(facility.coordinates.lat) && Number.isFinite(facility.coordinates.lng)) {
+      return [facility.coordinates.lng, facility.coordinates.lat];
+    }
+    if (Array.isArray(facility.location?.coordinates) && facility.location.coordinates.length === 2) {
+      return facility.location.coordinates;
+    }
+    return [];
+  };
+
   const openModal = (facility = null) => {
     const isDisposalMode = activeSubTab === 'disposal-facilities';
     if (facility) {
-      const coords = facility.location?.coordinates || [];
+      const coords = getCoordinates(facility);
       setEditingFacility(facility);
       setFormData({
         name: facility.name || '',
@@ -119,7 +129,7 @@ export default function FacilitiesModule({ initialTab = 'recycling-centres', toa
         isDisposalFacility: Boolean(facility.isDisposalFacility || isDisposalMode),
         acceptedMaterials: Array.isArray(facility.acceptedMaterials) ? facility.acceptedMaterials : [],
         operatingHours: facility.operatingHours || '9:00 AM - 6:00 PM',
-        contactPhone: facility.contactPhone || '',
+        contactPhone: facility.contactPhone || facility.phone || '',
         contactPerson: facility.contactPerson || '',
         email: facility.email || '',
         verificationStatus: facility.verificationStatus || 'Pending Verification',
@@ -257,7 +267,7 @@ export default function FacilitiesModule({ initialTab = 'recycling-centres', toa
   });
 
   const mappableFacilities = filteredFacilities.filter((f) => {
-    const coords = f.location?.coordinates;
+    const coords = getCoordinates(f);
     return Array.isArray(coords) && coords.length === 2 && Number.isFinite(coords[0]) && Number.isFinite(coords[1]);
   });
 
@@ -430,7 +440,7 @@ export default function FacilitiesModule({ initialTab = 'recycling-centres', toa
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
                   {mappableFacilities.map((f) => {
-                    const [lng, lat] = f.location.coordinates;
+                    const [lng, lat] = getCoordinates(f);
                     return (
                       <Marker key={f._id} position={[lat, lng]}>
                         <Popup>
@@ -484,7 +494,7 @@ export default function FacilitiesModule({ initialTab = 'recycling-centres', toa
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-xs">
                       {filteredFacilities.map((f) => {
-                        const coords = f.location?.coordinates || [];
+                        const coords = getCoordinates(f);
                         return (
                           <tr key={f._id} className={`hover:bg-slate-50/70 transition-colors ${f.isActive === false ? 'opacity-60 bg-slate-50/40' : ''}`}>
                             <td className="py-3.5 px-4">
@@ -535,9 +545,9 @@ export default function FacilitiesModule({ initialTab = 'recycling-centres', toa
                               <div className="flex items-center gap-1 text-slate-500 mt-0.5">
                                 <Clock size={11} /> {f.operatingHours || '9:00 AM - 6:00 PM'}
                               </div>
-                              {f.contactPhone && (
+                              {(f.contactPhone || f.phone) && (
                                 <div className="flex items-center gap-1 text-slate-500">
-                                  <Phone size={11} /> {f.contactPhone}
+                                  <Phone size={11} /> {f.contactPhone || f.phone}
                                 </div>
                               )}
                             </td>
