@@ -17,25 +17,42 @@ const parseResponse = async (res) => {
   try {
     const data = await res.json();
     if (!res.ok) {
-      return { success: false, message: data.message || `Request failed with status ${res.status}` };
+      return {
+        success: false,
+        status: res.status,
+        message: data.message || `Request failed with status ${res.status}`,
+        conflicts: data.conflicts || undefined
+      };
     }
     return data;
   } catch (err) {
-    return { success: false, message: err.message || `HTTP ${res.status} error` };
+    return { success: false, status: res.status, message: err.message || `HTTP ${res.status} error` };
   }
+};
+
+const cleanQueryParams = (params = {}) => {
+  const cleaned = {};
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') {
+      cleaned[k] = v;
+    }
+  });
+  return new URLSearchParams(cleaned).toString();
 };
 
 export const api = {
   getBaseUrl: () => API_BASE,
 
-  // Authentication
+  // ==========================================================
+  // AUTHENTICATION
+  // ==========================================================
   register: async (userData) => {
     try {
       const res = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData),
-        signal: AbortSignal.timeout(6000)
+        signal: AbortSignal.timeout(8000)
       });
       const data = await parseResponse(res);
       if (data.success && data.token) {
@@ -55,7 +72,7 @@ export const api = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials),
-        signal: AbortSignal.timeout(3000)
+        signal: AbortSignal.timeout(8000)
       });
       const data = await parseResponse(res);
       if (data.success && data.token) {
@@ -63,16 +80,19 @@ export const api = {
         localStorage.setItem('user', JSON.stringify(data.user));
         return data;
       }
+      // If server responded with explicit auth failure (401/403), return server response directly
+      if (res.status === 401 || res.status === 403 || res.status === 400) {
+        return data;
+      }
     } catch {
-      // Fall through to verified demo account fallback if server is offline
+      // Only fall through to offline demo session if the backend server is unreachable
     }
 
-    // Seamless verification for default demo accounts
-    if (normEmail === 'citizen.demo@wastewise.org' || normEmail === 'aarav@example.com' || (!normEmail?.includes('admin') && normEmail)) {
+    if (normEmail === 'citizen.demo@wastewise.org' || normEmail === 'aarav@example.com') {
       const demoUser = {
         id: 'demo-citizen-1',
         name: 'Aarav Sundaram (Coimbatore)',
-        email: normEmail || 'citizen.demo@wastewise.org',
+        email: normEmail,
         role: 'citizen',
         phone: '+91 98765 43210',
         address: {
@@ -82,18 +102,17 @@ export const api = {
           state: 'Tamil Nadu',
           zip: '641001'
         },
-        ecoPoints: 1250,
-        co2SavedKg: 24.8,
-        ecoLevel: 'Eco Champion',
-        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'
+        ecoPoints: 0,
+        co2SavedKg: 0,
+        ecoLevel: 'Eco Starter'
       };
       const demoToken = 'demo-jwt-token-coimbatore-citizen';
       localStorage.setItem('token', demoToken);
       localStorage.setItem('user', JSON.stringify(demoUser));
-      return { success: true, token: demoToken, user: demoUser };
+      return { success: true, token: demoToken, user: demoUser, isOfflineFallback: true };
     }
 
-    if (normEmail === 'admin@wastewise.org' || normEmail?.includes('admin')) {
+    if (normEmail === 'admin@wastewise.org') {
       const adminUser = {
         id: 'demo-admin-1',
         name: 'Coimbatore Municipal Supervisor',
@@ -107,18 +126,17 @@ export const api = {
           state: 'Tamil Nadu',
           zip: '641001'
         },
-        ecoPoints: 9999,
-        co2SavedKg: 850.0,
-        ecoLevel: 'Municipal Admin',
-        avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80'
+        ecoPoints: 0,
+        co2SavedKg: 0,
+        ecoLevel: 'Municipal Admin'
       };
       const demoToken = 'demo-jwt-token-coimbatore-admin';
       localStorage.setItem('token', demoToken);
       localStorage.setItem('user', JSON.stringify(adminUser));
-      return { success: true, token: demoToken, user: adminUser };
+      return { success: true, token: demoToken, user: adminUser, isOfflineFallback: true };
     }
 
-    return { success: false, message: 'Invalid email or password.' };
+    return { success: false, message: 'Unable to reach authentication server.' };
   },
 
   getMe: async () => {
@@ -135,20 +153,15 @@ export const api = {
 
       const res = await fetch(`${API_BASE}/auth/me`, {
         headers: getHeaders(true),
-        signal: AbortSignal.timeout(3000)
+        signal: AbortSignal.timeout(6000)
       });
       const data = await parseResponse(res);
       if (data.success) return data;
-
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        return { success: true, user: JSON.parse(storedUser) };
-      }
       return data;
     } catch {
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
-        return { success: true, user: JSON.parse(storedUser) };
+        return { success: true, user: JSON.parse(storedUser), isOfflineFallback: true };
       }
       return { success: false, message: 'Authentication check failed' };
     }
@@ -159,89 +172,31 @@ export const api = {
     localStorage.removeItem('user');
   },
 
-  // Waste Reports Full CRUD
+  // ==========================================================
+  // MODULE 4: PICKUP REQUEST MANAGEMENT
+  // ==========================================================
   getReports: async (params = {}) => {
     try {
-      const query = new URLSearchParams(params).toString();
-      const res = await fetch(`${API_BASE}/reports?${query}`, {
+      const query = cleanQueryParams(params);
+      const res = await fetch(`${API_BASE}/reports${query ? `?${query}` : ''}`, {
         headers: getHeaders(true),
-        signal: AbortSignal.timeout(3000)
+        signal: AbortSignal.timeout(8000)
       });
       const data = await parseResponse(res);
-      if (data.success && Array.isArray(data.reports) && data.reports.length > 0) {
+      if (data.success && Array.isArray(data.reports)) {
         return data;
       }
-    } catch {
-      // Fall through to verified demo reports if server is offline
+      return data;
+    } catch (e) {
+      return { success: false, reports: [], message: e.message || 'Unable to load pickup requests' };
     }
-
-    // Default Coimbatore demo reports
-    return {
-      success: true,
-      reports: [
-        {
-          _id: 'demo-rep-1',
-          trackingId: 'WW-84920',
-          category: 'Plastic',
-          subCategory: 'PETE 1 Water Bottles',
-          quantity: 2,
-          unit: 'bags',
-          location: {
-            address: '42 Cross Cut Road, Gandhipuram, Coimbatore, Tamil Nadu',
-            landmark: 'Opposite VOC Park Entrance',
-            coordinates: { lat: 11.0183, lng: 76.9691 }
-          },
-          status: 'Assigned',
-          assignedDriver: {
-            name: 'Karthik Raja',
-            phone: '+91 94431 82910',
-            vehiclePlate: 'TN-38-BZ-4921'
-          },
-          preferredSlot: {
-            dayName: 'Tomorrow',
-            timeSlot: '07:00 AM - 09:00 AM'
-          },
-          timeline: [
-            { status: 'Reported', note: 'Citizen submitted waste pickup request' },
-            { status: 'Confirmed', note: 'Verified by Coimbatore Smart System' },
-            { status: 'Assigned', note: 'Assigned to Municipal Courier Karthik Raja' }
-          ],
-          createdAt: new Date().toISOString()
-        },
-        {
-          _id: 'demo-rep-2',
-          trackingId: 'WW-67104',
-          category: 'Electronic',
-          subCategory: 'Household Batteries & Cables',
-          quantity: 1,
-          unit: 'bags',
-          location: {
-            address: '15 DB Road, RS Puram, Coimbatore, Tamil Nadu',
-            landmark: 'Near Flower Market',
-            coordinates: { lat: 11.0086, lng: 76.9497 }
-          },
-          status: 'Reported',
-          assignedDriver: {
-            name: 'Awaiting Driver Assignment'
-          },
-          preferredSlot: {
-            dayName: 'Friday',
-            timeSlot: '09:00 AM - 12:00 PM'
-          },
-          timeline: [
-            { status: 'Reported', note: 'E-waste request logged in Coimbatore West Zone' }
-          ],
-          createdAt: new Date().toISOString()
-        }
-      ]
-    };
   },
 
   getReportById: async (id) => {
     try {
       const res = await fetch(`${API_BASE}/reports/${id}`, {
         headers: getHeaders(true),
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(6000)
       });
       return await parseResponse(res);
     } catch (e) {
@@ -255,7 +210,7 @@ export const api = {
         method: 'POST',
         headers: getHeaders(true),
         body: JSON.stringify(reportData),
-        signal: AbortSignal.timeout(7000)
+        signal: AbortSignal.timeout(8000)
       });
       return await parseResponse(res);
     } catch (e) {
@@ -277,13 +232,13 @@ export const api = {
     }
   },
 
-  updateReportStatus: async (id, status, note = '') => {
+  updateReportStatus: async (id, status, note = '', rejectionReason = '') => {
     try {
       const res = await fetch(`${API_BASE}/reports/${id}/status`, {
         method: 'PATCH',
         headers: getHeaders(true),
-        body: JSON.stringify({ status, note }),
-        signal: AbortSignal.timeout(5000)
+        body: JSON.stringify({ status, note, rejectionReason }),
+        signal: AbortSignal.timeout(6000)
       });
       return await parseResponse(res);
     } catch (e) {
@@ -297,7 +252,7 @@ export const api = {
         method: 'PATCH',
         headers: getHeaders(true),
         body: JSON.stringify(driverData),
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(6000)
       });
       return await parseResponse(res);
     } catch (e) {
@@ -310,7 +265,7 @@ export const api = {
       const res = await fetch(`${API_BASE}/reports/${id}`, {
         method: 'DELETE',
         headers: getHeaders(true),
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(6000)
       });
       return await parseResponse(res);
     } catch (e) {
@@ -318,86 +273,241 @@ export const api = {
     }
   },
 
-  // Recycling Centres
-  getCentres: async (params = {}) => {
+  // ==========================================================
+  // MODULE 5: COLLECTION WORKER MANAGEMENT
+  // ==========================================================
+  getWorkers: async (params = {}) => {
     try {
-      const query = new URLSearchParams(params).toString();
-      const res = await fetch(`${API_BASE}/centers?${query}`, {
-        headers: getHeaders(false),
-        signal: AbortSignal.timeout(3000)
+      const query = cleanQueryParams(params);
+      const res = await fetch(`${API_BASE}/workers${query ? `?${query}` : ''}`, {
+        headers: getHeaders(true),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, workers: [], message: e.message || 'Failed to load workers' };
+    }
+  },
+
+  getWorkerById: async (id) => {
+    try {
+      const res = await fetch(`${API_BASE}/workers/${id}`, {
+        headers: getHeaders(true),
+        signal: AbortSignal.timeout(6000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to load worker details' };
+    }
+  },
+
+  createWorker: async (workerData) => {
+    try {
+      const res = await fetch(`${API_BASE}/workers`, {
+        method: 'POST',
+        headers: getHeaders(true),
+        body: JSON.stringify(workerData),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to register worker' };
+    }
+  },
+
+  updateWorker: async (id, updateData) => {
+    try {
+      const res = await fetch(`${API_BASE}/workers/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(true),
+        body: JSON.stringify(updateData),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to update worker' };
+    }
+  },
+
+  // ==========================================================
+  // MODULES 6 & 16: VEHICLE & FLEET + CAPACITY MONITORING
+  // ==========================================================
+  getVehicles: async (params = {}) => {
+    try {
+      const query = cleanQueryParams(params);
+      const res = await fetch(`${API_BASE}/vehicles${query ? `?${query}` : ''}`, {
+        headers: getHeaders(true),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, vehicles: [], message: e.message || 'Failed to load fleet vehicles' };
+    }
+  },
+
+  createVehicle: async (vehicleData) => {
+    try {
+      const res = await fetch(`${API_BASE}/vehicles`, {
+        method: 'POST',
+        headers: getHeaders(true),
+        body: JSON.stringify(vehicleData),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to register vehicle' };
+    }
+  },
+
+  updateVehicle: async (id, updateData) => {
+    try {
+      const res = await fetch(`${API_BASE}/vehicles/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(true),
+        body: JSON.stringify(updateData),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to update vehicle' };
+    }
+  },
+
+  // ==========================================================
+  // MODULE 7: COIMBATORE WARD MANAGEMENT
+  // ==========================================================
+  getWards: async (params = {}) => {
+    try {
+      const query = cleanQueryParams(params);
+      const res = await fetch(`${API_BASE}/wards${query ? `?${query}` : ''}`, {
+        headers: getHeaders(true),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, wards: [], message: e.message || 'Failed to load wards' };
+    }
+  },
+
+  getWardById: async (id) => {
+    try {
+      const res = await fetch(`${API_BASE}/wards/${id}`, {
+        headers: getHeaders(true),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to load ward overview' };
+    }
+  },
+
+  createWard: async (wardData) => {
+    try {
+      const res = await fetch(`${API_BASE}/wards`, {
+        method: 'POST',
+        headers: getHeaders(true),
+        body: JSON.stringify(wardData),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to create ward' };
+    }
+  },
+
+  updateWard: async (id, updateData) => {
+    try {
+      const res = await fetch(`${API_BASE}/wards/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(true),
+        body: JSON.stringify(updateData),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to update ward' };
+    }
+  },
+
+  // ==========================================================
+  // MODULE 8: COLLECTION SCHEDULE MANAGEMENT
+  // ==========================================================
+  getSchedules: async (params = {}) => {
+    try {
+      const query = cleanQueryParams(params);
+      const res = await fetch(`${API_BASE}/schedules${query ? `?${query}` : ''}`, {
+        headers: getHeaders(true),
+        signal: AbortSignal.timeout(8000)
       });
       const data = await parseResponse(res);
-      if (data.success && Array.isArray(data.centres) && data.centres.length > 0) {
+      if (data.success && Array.isArray(data.schedules)) {
         return data;
       }
-    } catch {
-      // Fall through to Coimbatore centres below
+      return data;
+    } catch (e) {
+      return { success: false, schedules: [], message: e.message || 'Failed to load collection schedules' };
     }
+  },
 
-    const defaultCentres = [
-      {
-        _id: 'c1',
-        name: 'Vellalore Integrated Solid Waste Management Facility',
-        address: 'Vellalore Road, Podanur Post',
-        city: 'Coimbatore',
-        coordinates: { lat: 10.9634, lng: 77.0125 },
-        operatingHours: '06:00 - 18:00 (IST)',
-        phone: '+91 422 241 0125',
-        acceptedMaterials: ['Organic', 'Plastic', 'Recyclable'],
-        materialSpecs: 'Wet Kitchen Waste, Compost, Yard Trimmings, Clean Segregated Plastics',
-        imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=600&q=80',
-        rating: 4.8,
-        distanceTimes: { walkMin: 35, bikeMin: 18, driveMin: 10 }
-      },
-      {
-        _id: 'c2',
-        name: 'Peelamedu E-Waste & Electronics SafeDrop',
-        address: 'Avinashi Road, Near PSG Tech, Peelamedu',
-        city: 'Coimbatore',
-        coordinates: { lat: 11.0285, lng: 77.0028 },
-        operatingHours: '09:00 - 18:00 (IST)',
-        phone: '+91 422 257 0188',
-        acceptedMaterials: ['Electronic', 'Metal'],
-        materialSpecs: 'Computer Peripherals, Lithium/Lead-Acid Batteries, Copper Cables, PCB Units',
-        imageUrl: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=600&q=80',
-        rating: 4.9,
-        distanceTimes: { walkMin: 20, bikeMin: 10, driveMin: 5 }
-      },
-      {
-        _id: 'c3',
-        name: 'RS Puram Plastic & Glass Segregation Station',
-        address: 'Diwan Bahadur Road, RS Puram West',
-        city: 'Coimbatore',
-        coordinates: { lat: 11.0086, lng: 76.9497 },
-        operatingHours: '07:00 - 19:00 (IST)',
-        phone: '+91 422 254 0199',
-        acceptedMaterials: ['Plastic', 'Glass', 'Recyclable'],
-        materialSpecs: 'PET Bottles, HDPE Drums, LDPE Wraps, Beverage & Pickle Glass Jars',
-        imageUrl: 'https://images.unsplash.com/photo-1528323273322-d81458248d40?auto=format&fit=crop&w=600&q=80',
-        rating: 4.7,
-        distanceTimes: { walkMin: 15, bikeMin: 8, driveMin: 4 }
-      },
-      {
-        _id: 'c4',
-        name: 'Ukkadam Secondary Resource Recovery Centre',
-        address: 'Sungam Bypass Road, Ukkadam',
-        city: 'Coimbatore',
-        coordinates: { lat: 10.9880, lng: 76.9630 },
-        operatingHours: '08:00 - 17:30 (IST)',
-        phone: '+91 422 230 0245',
-        acceptedMaterials: ['Medical', 'Metal', 'Recyclable'],
-        materialSpecs: 'Sanitary Waste, Safe Sharps Containers, Metal Scraps & Tin Cans',
-        imageUrl: 'https://images.unsplash.com/photo-1584744982491-665216d95f8b?auto=format&fit=crop&w=600&q=80',
-        rating: 4.8,
-        distanceTimes: { walkMin: 25, bikeMin: 12, driveMin: 7 }
+  createSchedule: async (scheduleData) => {
+    try {
+      const res = await fetch(`${API_BASE}/schedules`, {
+        method: 'POST',
+        headers: getHeaders(true),
+        body: JSON.stringify(scheduleData),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to create schedule' };
+    }
+  },
+
+  updateSchedule: async (id, updateData) => {
+    try {
+      const res = await fetch(`${API_BASE}/schedules/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(true),
+        body: JSON.stringify(updateData),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to update schedule' };
+    }
+  },
+
+  deleteSchedule: async (id) => {
+    try {
+      const res = await fetch(`${API_BASE}/schedules/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders(true),
+        signal: AbortSignal.timeout(6000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to delete schedule' };
+    }
+  },
+
+  // ==========================================================
+  // MODULES 9 & 10: RECYCLING CENTRES & DISPOSAL FACILITIES
+  // ==========================================================
+  getCentres: async (params = {}) => {
+    try {
+      const query = cleanQueryParams(params);
+      const res = await fetch(`${API_BASE}/centers${query ? `?${query}` : ''}`, {
+        headers: getHeaders(true),
+        signal: AbortSignal.timeout(8000)
+      });
+      const data = await parseResponse(res);
+      if (data.success && Array.isArray(data.centres)) {
+        return data;
       }
-    ];
-
-    let filtered = defaultCentres;
-    if (params.material && params.material !== 'All') {
-      filtered = filtered.filter(c => c.acceptedMaterials.includes(params.material));
+      return data;
+    } catch (e) {
+      return { success: false, centres: [], message: e.message || 'Failed to load recycling centres' };
     }
-    return { success: true, count: filtered.length, centres: filtered };
   },
 
   createCentre: async (centreData) => {
@@ -406,7 +516,7 @@ export const api = {
         method: 'POST',
         headers: getHeaders(true),
         body: JSON.stringify(centreData),
-        signal: AbortSignal.timeout(6000)
+        signal: AbortSignal.timeout(8000)
       });
       return await parseResponse(res);
     } catch (e) {
@@ -414,73 +524,113 @@ export const api = {
     }
   },
 
-  // Collection Schedules
-  getSchedules: async (params = {}) => {
+  updateCentre: async (id, updateData) => {
     try {
-      const query = new URLSearchParams(params).toString();
-      const res = await fetch(`${API_BASE}/schedules?${query}`, {
-        headers: getHeaders(false),
-        signal: AbortSignal.timeout(3000)
+      const res = await fetch(`${API_BASE}/centers/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(true),
+        body: JSON.stringify(updateData),
+        signal: AbortSignal.timeout(8000)
       });
-      const data = await parseResponse(res);
-      if (data.success && Array.isArray(data.schedules) && data.schedules.length > 0) {
-        return data;
-      }
-    } catch {
-      // Fall through to Coimbatore schedules below
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to update centre' };
     }
-
-    const defaultSchedules = [
-      {
-        _id: 's1',
-        title: 'Ward 24 (Peelamedu) - Curbside Organic & Wet Waste Round',
-        zone: 'East Zone - Ward 24, Peelamedu',
-        date: new Date(Date.now() + 86400000).toISOString(),
-        dayOfWeek: 'Tomorrow',
-        timeWindow: '06:30 AM - 09:30 AM (IST)',
-        categories: ['Organic'],
-        driverName: 'Senthil Kumar',
-        vehiclePlate: 'TN-38-BZ-4921',
-        status: 'Upcoming',
-        notes: 'Please keep green wet-waste bins segregated at doorstep by 06:30 AM'
-      },
-      {
-        _id: 's2',
-        title: 'Ward 58 (RS Puram) - Dry Recyclables & Plastic Collection',
-        zone: 'West Zone - Ward 58, RS Puram',
-        date: new Date(Date.now() + 172800000).toISOString(),
-        dayOfWeek: 'Friday',
-        timeWindow: '08:30 AM - 12:30 PM (IST)',
-        categories: ['Recyclable', 'Plastic', 'Metal', 'Glass'],
-        driverName: 'Karthik Raja',
-        vehiclePlate: 'TN-38-CX-1102',
-        status: 'Upcoming',
-        notes: 'Rinse milk pouches, plastic bottles, and paper cartons before handover'
-      },
-      {
-        _id: 's3',
-        title: 'Ward 72 (Gandhipuram & Town Hall) - Hazardous & E-Waste Drive',
-        zone: 'Central Zone - Ward 72, Gandhipuram',
-        date: new Date(Date.now() + 259200000).toISOString(),
-        dayOfWeek: 'Saturday',
-        timeWindow: '09:00 AM - 02:00 PM (IST)',
-        categories: ['Electronic', 'Medical'],
-        driverName: 'Muruganandam',
-        vehiclePlate: 'TN-38-HAZ-04',
-        status: 'Upcoming',
-        notes: 'Safely box old cellphones, computer cords, tube lights and household batteries'
-      }
-    ];
-
-    return { success: true, count: defaultSchedules.length, schedules: defaultSchedules };
   },
 
-  // Analytics Overview
-  getAnalytics: async () => {
+  deleteCentre: async (id) => {
     try {
-      const res = await fetch(`${API_BASE}/analytics/overview`, {
+      const res = await fetch(`${API_BASE}/centers/${id}`, {
+        method: 'DELETE',
         headers: getHeaders(true),
         signal: AbortSignal.timeout(6000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to delete centre' };
+    }
+  },
+
+  // ==========================================================
+  // MODULE 11: ROUTE OPTIMISATION & DISPATCH
+  // ==========================================================
+  getOptimizedRoute: async (params = {}) => {
+    try {
+      const query = cleanQueryParams(params);
+      const res = await fetch(`${API_BASE}/routes/collection-route${query ? `?${query}` : ''}`, {
+        headers: getHeaders(true),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to compute optimized route' };
+    }
+  },
+
+  previewOptimizedRoute: async (payload = {}) => {
+    try {
+      const res = await fetch(`${API_BASE}/routes/optimize-preview`, {
+        method: 'POST',
+        headers: getHeaders(true),
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to preview route' };
+    }
+  },
+
+  dispatchRoute: async (payload) => {
+    try {
+      const res = await fetch(`${API_BASE}/routes/dispatch`, {
+        method: 'POST',
+        headers: getHeaders(true),
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(10000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to dispatch route' };
+    }
+  },
+
+  getRoutes: async (params = {}) => {
+    try {
+      const query = cleanQueryParams(params);
+      const res = await fetch(`${API_BASE}/routes${query ? `?${query}` : ''}`, {
+        headers: getHeaders(true),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, routes: [], message: e.message || 'Failed to load dispatched routes' };
+    }
+  },
+
+  updateRouteStatus: async (id, payload) => {
+    try {
+      const res = await fetch(`${API_BASE}/routes/${id}/status`, {
+        method: 'PATCH',
+        headers: getHeaders(true),
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to update route status' };
+    }
+  },
+
+  // ==========================================================
+  // MODULES 3, 12, 15, 17: ANALYTICS, HEATMAP, SCORECARDS
+  // ==========================================================
+  getAnalytics: async (params = {}) => {
+    try {
+      const query = cleanQueryParams(params);
+      const res = await fetch(`${API_BASE}/analytics/overview${query ? `?${query}` : ''}`, {
+        headers: getHeaders(true),
+        signal: AbortSignal.timeout(8000)
       });
       return await parseResponse(res);
     } catch (e) {
@@ -488,16 +638,282 @@ export const api = {
     }
   },
 
-  // Route Optimization (TSP)
-  getOptimizedRoute: async () => {
+  getWardScorecards: async (params = {}) => {
     try {
-      const res = await fetch(`${API_BASE}/routes/collection-route`, {
+      const query = cleanQueryParams(params);
+      const res = await fetch(`${API_BASE}/analytics/ward-scorecards${query ? `?${query}` : ''}`, {
+        headers: getHeaders(true),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, scorecards: [], message: e.message || 'Failed to load ward scorecards' };
+    }
+  },
+
+  getCleanlinessHeatmap: async (params = {}) => {
+    try {
+      const query = cleanQueryParams(params);
+      const res = await fetch(`${API_BASE}/analytics/cleanliness-heatmap${query ? `?${query}` : ''}`, {
+        headers: getHeaders(true),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, locationPoints: [], wardIndicators: [], message: e.message || 'Failed to load cleanliness heatmap' };
+    }
+  },
+
+  // ==========================================================
+  // MODULE 13: COMMUNITY COMPLAINTS & ISSUE MANAGEMENT
+  // ==========================================================
+  getComplaints: async (params = {}) => {
+    try {
+      const query = cleanQueryParams(params);
+      const res = await fetch(`${API_BASE}/complaints${query ? `?${query}` : ''}`, {
+        headers: getHeaders(true),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, complaints: [], message: e.message || 'Failed to load complaints' };
+    }
+  },
+
+  createComplaint: async (complaintData) => {
+    try {
+      const res = await fetch(`${API_BASE}/complaints`, {
+        method: 'POST',
+        headers: getHeaders(true),
+        body: JSON.stringify(complaintData),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to submit complaint' };
+    }
+  },
+
+  updateComplaint: async (id, updateData) => {
+    try {
+      const res = await fetch(`${API_BASE}/complaints/${id}`, {
+        method: 'PATCH',
+        headers: getHeaders(true),
+        body: JSON.stringify(updateData),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to update complaint' };
+    }
+  },
+
+  // ==========================================================
+  // MODULE 14: COMMUNITY CAMPAIGNS & ANNOUNCEMENTS
+  // ==========================================================
+  getCampaigns: async (params = {}) => {
+    try {
+      const query = cleanQueryParams(params);
+      const res = await fetch(`${API_BASE}/campaigns${query ? `?${query}` : ''}`, {
+        headers: getHeaders(true),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, campaigns: [], message: e.message || 'Failed to load campaigns' };
+    }
+  },
+
+  createCampaign: async (campaignData) => {
+    try {
+      const res = await fetch(`${API_BASE}/campaigns`, {
+        method: 'POST',
+        headers: getHeaders(true),
+        body: JSON.stringify(campaignData),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to create campaign' };
+    }
+  },
+
+  updateCampaign: async (id, updateData) => {
+    try {
+      const res = await fetch(`${API_BASE}/campaigns/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(true),
+        body: JSON.stringify(updateData),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to update campaign' };
+    }
+  },
+
+  deleteCampaign: async (id) => {
+    try {
+      const res = await fetch(`${API_BASE}/campaigns/${id}`, {
+        method: 'DELETE',
         headers: getHeaders(true),
         signal: AbortSignal.timeout(6000)
       });
       return await parseResponse(res);
     } catch (e) {
-      return { success: false, message: e.message || 'Failed to compute optimized route' };
+      return { success: false, message: e.message || 'Failed to delete campaign' };
     }
+  },
+
+  // ==========================================================
+  // MODULES 18, 19, 20: USER MANAGEMENT, AUDIT LOGS, SETTINGS
+  // ==========================================================
+  getAdminUsers: async (params = {}) => {
+    try {
+      const query = cleanQueryParams(params);
+      const res = await fetch(`${API_BASE}/admin/users${query ? `?${query}` : ''}`, {
+        headers: getHeaders(true),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, users: [], message: e.message || 'Failed to load users' };
+    }
+  },
+
+  getAdminUserDetails: async (id) => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/users/${id}`, {
+        headers: getHeaders(true),
+        signal: AbortSignal.timeout(6000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to load user details' };
+    }
+  },
+
+  updateAdminUser: async (id, updateData) => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/users/${id}`, {
+        method: 'PATCH',
+        headers: getHeaders(true),
+        body: JSON.stringify(updateData),
+        signal: AbortSignal.timeout(6000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to update user account' };
+    }
+  },
+
+  getAuditLogs: async (params = {}) => {
+    try {
+      const query = cleanQueryParams(params);
+      const res = await fetch(`${API_BASE}/admin/audit-logs${query ? `?${query}` : ''}`, {
+        headers: getHeaders(true),
+        signal: AbortSignal.timeout(8000)
+      });
+      return await parseResponse(res);
+    } catch (e) {
+      return { success: false, logs: [], message: e.message || 'Failed to load audit logs' };
+    }
+  },
+
+  getSystemSettings: async () => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/settings`, {
+        headers: getHeaders(true),
+        signal: AbortSignal.timeout(6000)
+      });
+      const data = await parseResponse(res);
+      return data.settings || data;
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to load system settings' };
+    }
+  },
+
+  updateSystemSettings: async (settingsData) => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/settings`, {
+        method: 'PUT',
+        headers: getHeaders(true),
+        body: JSON.stringify(settingsData),
+        signal: AbortSignal.timeout(8000)
+      });
+      const data = await parseResponse(res);
+      return data.settings || data;
+    } catch (e) {
+      return { success: false, message: e.message || 'Failed to save system settings' };
+    }
+  },
+
+  // Convenience aliases for modular admin components
+  getAnalyticsOverview: async (params = {}) => {
+    const res = await api.getAnalytics(params);
+    return res?.stats || res?.analytics || res;
+  },
+
+  getAllReports: async (params = {}) => {
+    const res = await api.getReports(params);
+    return res?.reports || res;
+  },
+
+  getCenters: async (params = {}) => {
+    const res = await api.getCentres(params);
+    return res?.centres || res?.centers || [];
+  },
+
+  createCenter: async (centreData) => {
+    const payload = {
+      ...centreData,
+      materials: centreData.acceptedMaterials || centreData.materials || [],
+      phone: centreData.contactPhone || centreData.phone || '',
+      hours: centreData.operatingHours || centreData.hours || '9:00 AM - 6:00 PM'
+    };
+    const res = await api.createCentre(payload);
+    if (res && res.success === false) throw new Error(res.message || 'Failed to create facility');
+    return res?.centre || res;
+  },
+
+  updateCenter: async (id, updateData) => {
+    const payload = {
+      ...updateData,
+      materials: updateData.acceptedMaterials || updateData.materials,
+      phone: updateData.contactPhone ?? updateData.phone,
+      hours: updateData.operatingHours ?? updateData.hours
+    };
+    const res = await api.updateCentre(id, payload);
+    if (res && res.success === false) throw new Error(res.message || 'Failed to update facility');
+    return res?.centre || res;
+  },
+
+  toggleCenterActive: async (id) => {
+    const res = await api.deleteCentre(id);
+    if (res && res.success === false) throw new Error(res.message || 'Failed to toggle facility status');
+    return res;
+  },
+
+  cancelCampaign: async (id) => {
+    const res = await api.deleteCampaign(id);
+    if (res && res.success === false) throw new Error(res.message || 'Failed to cancel campaign');
+    return res;
+  },
+
+  getUsersAdmin: async (params = {}) => {
+    const res = await api.getAdminUsers(params);
+    return res?.users || [];
+  },
+
+  getUserDetailsAdmin: async (id) => {
+    const res = await api.getAdminUserDetails(id);
+    if (res && res.success === false) throw new Error(res.message || 'Failed to load user details');
+    return res;
+  },
+
+  updateUserAdmin: async (id, updateData) => {
+    const res = await api.updateAdminUser(id, updateData);
+    if (res && res.success === false) throw new Error(res.message || 'Failed to update user');
+    return res?.user || res;
   }
 };

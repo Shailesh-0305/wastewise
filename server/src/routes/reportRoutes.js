@@ -16,15 +16,19 @@ router.route('/')
   .post(protect, createReport)
   .get(protect, getAllReports);
 
+router.get('/all', protect, getAllReports);
+
 router.route('/:id')
   .get(protect, getReportById)
   .put(protect, updateReport)
   .delete(protect, authorize('admin'), deleteReport);
 
 router.route('/:id/status')
-  .patch(protect, updateReportStatus);
+  .patch(protect, updateReportStatus)
+  .put(protect, updateReportStatus);
 
 router.route('/:id/assign')
-  .patch(protect, authorize('admin'), assignDriver);
+  .patch(protect, authorize('admin'), assignDriver)
+  .put(protect, authorize('admin'), assignDriver);
 
 export default router;

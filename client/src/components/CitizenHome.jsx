@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Truck, 
   MapPin, 
@@ -7,10 +7,14 @@ import {
   Search, 
   ArrowRight, 
   PlusCircle,
-  LogIn
+  LogIn,
+  Megaphone,
+  MessageSquareWarning,
+  X
 } from 'lucide-react';
 import LiveTrackingCard from './LiveTrackingCard';
 import { ForestSilhouettes, FloatingLeaf } from './NatureDecorations';
+import { api } from '../services/api';
 
 const SERVICES = [
   { id: 'pickup', title: 'Pickup Request', icon: Truck, desc: 'Schedule doorstep waste collection' },
@@ -27,6 +31,16 @@ const RECYCLING_MATERIALS = [
   { name: 'Metal', img: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=400&q=80', badge: 'Infinite Cycle', desc: 'Tin cans, foil & metal caps' }
 ];
 
+const COMPLAINT_CATEGORIES = [
+  'Overflowing Public Bins',
+  'Missed Garbage Collection',
+  'Illegal Dumping',
+  'Waste Left in Public Spaces',
+  'Damaged Waste Collection Infrastructure',
+  'Uncollected Hazardous Waste',
+  'Other Sanitation Issues'
+];
+
 export default function CitizenHome({ 
   onOpenPickup, 
   onNavigateCentres, 
@@ -38,7 +52,40 @@ export default function CitizenHome({
   currentUser
 }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [campaigns, setCampaigns] = useState([]);
+  const [myComplaints, setMyComplaints] = useState([]);
+  const [complaintModalOpen, setComplaintModalOpen] = useState(false);
+  const [submittingComplaint, setSubmittingComplaint] = useState(false);
+  const [complaintFeedback, setComplaintFeedback] = useState('');
+  const [complaintForm, setComplaintForm] = useState({
+    title: '',
+    category: 'Overflowing Public Bins',
+    description: '',
+    ward: 'Ward 24 - RS Puram',
+    locality: currentUser?.address?.locality || 'RS Puram',
+    address: currentUser?.address?.street || 'RS Puram, Coimbatore'
+  });
+
   const latestReport = reports[0];
+
+  const loadCommunityUpdates = useCallback(async () => {
+    try {
+      const [campRes, compRes] = await Promise.all([
+        api.getCampaigns(),
+        currentUser ? api.getComplaints() : Promise.resolve([])
+      ]);
+      const campList = Array.isArray(campRes) ? campRes : campRes?.campaigns || [];
+      const compList = Array.isArray(compRes) ? compRes : compRes?.complaints || [];
+      setCampaigns(campList.slice(0, 4));
+      setMyComplaints(compList.slice(0, 4));
+    } catch {
+      // Non-blocking for citizen home
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    loadCommunityUpdates();
+  }, [loadCommunityUpdates]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -46,6 +93,30 @@ export default function CitizenHome({
       onNavigateCatalog(searchQuery.trim());
     } else {
       onNavigateCatalog();
+    }
+  };
+
+  const handleCreateComplaint = async (e) => {
+    e.preventDefault();
+    setSubmittingComplaint(true);
+    setComplaintFeedback('');
+    try {
+      await api.createComplaint(complaintForm);
+      setComplaintModalOpen(false);
+      setComplaintForm({
+        title: '',
+        category: 'Overflowing Bin',
+        description: '',
+        ward: 'Ward 24 - RS Puram',
+        locality: currentUser?.address?.locality || 'RS Puram',
+        address: currentUser?.address?.street || ''
+      });
+      setComplaintFeedback('Your civic sanitation issue has been submitted to Coimbatore Municipal Operations.');
+      loadCommunityUpdates();
+    } catch (err) {
+      setComplaintFeedback(err.message || 'Failed to submit complaint');
+    } finally {
+      setSubmittingComplaint(false);
     }
   };
 
@@ -69,7 +140,6 @@ export default function CitizenHome({
           boxShadow: 'var(--shadow-sm)'
         }}
       >
-        {/* Decorative background trees and floating leaves */}
         <ForestSilhouettes opacity={0.16} height={140} />
         <FloatingLeaf size={32} top={18} right={24} rotate={20} opacity={0.25} />
 
@@ -306,6 +376,126 @@ export default function CitizenHome({
         </div>
       )}
 
+      {/* Community Campaigns & Civic Issue Reporting Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Active Municipal Campaigns */}
+        <div className="card" style={{ padding: 20, background: '#ffffff' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Megaphone size={18} color="var(--primary-forest)" />
+              <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-text)' }}>
+                Coimbatore Campaigns & Notices
+              </h3>
+            </div>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--secondary-green)' }}>
+              CCMC Updates
+            </span>
+          </div>
+          {campaigns.length === 0 ? (
+            <p style={{ fontSize: '0.82rem', color: 'var(--secondary-text)', padding: '16px 0' }}>
+              No active ward announcements or clean-up campaigns at the moment.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {campaigns.map((camp) => (
+                <div
+                  key={camp._id}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: 14,
+                    background: 'var(--pale-green-section)',
+                    border: '1px solid #d4ebd6'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--primary-forest)', textTransform: 'uppercase' }}>
+                      {camp.campaignType} • {camp.ward}
+                    </span>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--secondary-text)' }}>
+                      {camp.startDate ? new Date(camp.startDate).toLocaleDateString('en-IN') : ''}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary-text)', marginTop: 3 }}>
+                    {camp.title}
+                  </div>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--secondary-text)', marginTop: 2 }}>
+                    {camp.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Civic Issue Reporting & Status */}
+        <div className="card" style={{ padding: 20, background: '#ffffff', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <MessageSquareWarning size={18} color="var(--primary-forest)" />
+                <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-text)' }}>
+                  Civic Sanitation Issues
+                </h3>
+              </div>
+              <button
+                onClick={() => setComplaintModalOpen(true)}
+                className="btn-secondary"
+                style={{ padding: '6px 12px', fontSize: '0.76rem' }}
+              >
+                + Report Street Issue
+              </button>
+            </div>
+
+            {complaintFeedback && (
+              <div style={{ padding: '10px 12px', borderRadius: 12, background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', fontSize: '0.78rem', marginBottom: 10 }}>
+                {complaintFeedback}
+              </div>
+            )}
+
+            {myComplaints.length === 0 ? (
+              <p style={{ fontSize: '0.82rem', color: 'var(--secondary-text)', padding: '16px 0' }}>
+                Spot an overflowing community bin, missed street sweep, or illegal dumping in Coimbatore? Report it directly to ward supervisors.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {myComplaints.map((c) => (
+                  <div
+                    key={c._id}
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: 12,
+                      border: '1px solid var(--border-light)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: 10
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--primary-text)' }}>{c.title}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--secondary-text)' }}>
+                        {c.category} • {c.locality}
+                        {c.resolutionNotes ? ` — Resolved: ${c.resolutionNotes}` : ''}
+                      </div>
+                    </div>
+                    <span style={{
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      padding: '3px 9px',
+                      borderRadius: 999,
+                      background: c.status === 'Resolved' ? '#dcfce7' : '#fef3c7',
+                      color: c.status === 'Resolved' ? '#166534' : '#92400e'
+                    }}>
+                      {c.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Accepted Recycling Materials Carousel */}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -376,6 +566,93 @@ export default function CitizenHome({
           ))}
         </div>
       </div>
+
+      {/* Report Street Sanitation Issue Modal */}
+      {complaintModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900">Report Coimbatore Sanitation Issue</h3>
+              <button onClick={() => setComplaintModalOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600">
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleCreateComplaint} className="space-y-3.5 mt-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Issue Summary *</label>
+                <input
+                  type="text"
+                  required
+                  value={complaintForm.title}
+                  onChange={(e) => setComplaintForm({ ...complaintForm, title: e.target.value })}
+                  placeholder="e.g. Overflowing bin on DB Road"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200"
+                />
+              </div>
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Issue Category *</label>
+                <select
+                  value={complaintForm.category}
+                  onChange={(e) => setComplaintForm({ ...complaintForm, category: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
+                >
+                  {COMPLAINT_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Locality *</label>
+                  <input
+                    type="text"
+                    required
+                    value={complaintForm.locality}
+                    onChange={(e) => setComplaintForm({ ...complaintForm, locality: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Street Landmark</label>
+                  <input
+                    type="text"
+                    value={complaintForm.address}
+                    onChange={(e) => setComplaintForm({ ...complaintForm, address: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Details *</label>
+                <textarea
+                  rows={3}
+                  required
+                  value={complaintForm.description}
+                  onChange={(e) => setComplaintForm({ ...complaintForm, description: e.target.value })}
+                  placeholder="Describe the issue location and condition..."
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setComplaintModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingComplaint}
+                  className="px-5 py-2 rounded-xl bg-emerald-800 text-white font-semibold hover:bg-emerald-900"
+                >
+                  {submittingComplaint ? 'Submitting...' : 'Submit Report'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

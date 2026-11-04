@@ -8,7 +8,17 @@ const collectionScheduleSchema = new mongoose.Schema({
   zone: {
     type: String,
     required: true,
-    default: 'District 4 - Metro North'
+    default: 'Coimbatore Central Zone'
+  },
+  ward: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  wardId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Ward',
+    default: null
   },
   date: {
     type: Date,
@@ -16,34 +26,60 @@ const collectionScheduleSchema = new mongoose.Schema({
   },
   dayOfWeek: {
     type: String,
-    default: 'Thursday'
+    default: 'Monday'
   },
   timeWindow: {
     type: String,
-    default: '07:00 AM - 09:00 AM'
+    default: '07:00 AM - 09:00 AM (IST)'
+  },
+  startTime: {
+    type: String,
+    default: '07:00'
+  },
+  endTime: {
+    type: String,
+    default: '09:00'
   },
   categories: [
     {
       type: String,
-      enum: ['Organic', 'Recycling', 'Plastic', 'Electronic', 'Medical', 'General', 'Metal', 'Glass']
+      enum: ['Organic', 'Recycling', 'Recyclable', 'Plastic', 'Electronic', 'Medical', 'General', 'Metal', 'Glass', 'Hazardous']
     }
   ],
+  driverId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
   driverName: {
     type: String,
-    default: 'Muhammad Gilang Pratama'
+    default: ''
+  },
+  vehicleObjectId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'CollectionVehicle',
+    default: null
   },
   vehicleId: {
     type: String,
-    default: 'TRK-GREEN-08'
+    default: ''
+  },
+  vehiclePlate: {
+    type: String,
+    default: ''
   },
   status: {
     type: String,
-    enum: ['Upcoming', 'Today', 'In Progress', 'Completed'],
+    enum: ['Upcoming', 'Today', 'In Progress', 'Completed', 'Cancelled'],
     default: 'Upcoming'
+  },
+  isPublished: {
+    type: Boolean,
+    default: true
   },
   notes: {
     type: String,
-    default: 'Please place segregated bins at curbside before 06:45 AM'
+    default: 'Please place segregated bins at doorstep before scheduled collection time'
   },
   createdAt: {
     type: Date,

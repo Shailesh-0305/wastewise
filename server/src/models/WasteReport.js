@@ -37,10 +37,34 @@ const wasteReportSchema = new mongoose.Schema({
   location: {
     address: { type: String, required: true },
     landmark: { type: String, default: '' },
+    locality: { type: String, default: '' },
+    ward: { type: String, default: '' },
+    wardId: { type: mongoose.Schema.Types.ObjectId, ref: 'Ward', default: null },
     coordinates: {
       lat: { type: Number, required: false },
       lng: { type: Number, required: false }
     }
+  },
+  ward: {
+    type: String,
+    default: ''
+  },
+  locality: {
+    type: String,
+    default: ''
+  },
+  priority: {
+    type: String,
+    enum: ['Normal', 'High', 'Urgent', 'Hazardous'],
+    default: 'Normal'
+  },
+  specialHandling: {
+    type: Boolean,
+    default: false
+  },
+  specialHandlingNotes: {
+    type: String,
+    default: ''
   },
   imageUrl: {
     type: String,
@@ -59,14 +83,19 @@ const wasteReportSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Reported', 'Confirmed', 'Assigned', 'In Progress', 'Collected', 'Recycled', 'Cancelled'],
+    enum: ['Reported', 'Confirmed', 'Assigned', 'In Progress', 'Collected', 'Recycled', 'Rejected', 'Cancelled'],
     default: 'Reported'
+  },
+  rejectionReason: {
+    type: String,
+    default: ''
   },
   assignedDriver: {
     driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     name: { type: String, default: 'Awaiting Driver Assignment' },
     phone: { type: String, default: '' },
     driverIdCode: { type: String, default: '' },
+    vehicleId: { type: mongoose.Schema.Types.ObjectId, ref: 'CollectionVehicle', default: null },
     vehiclePlate: { type: String, default: '' },
     currentLocation: {
       lat: { type: Number },
@@ -77,6 +106,11 @@ const wasteReportSchema = new mongoose.Schema({
     distanceKm: { type: Number },
     etaMinutes: { type: Number }
   },
+  assignedRouteId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'CollectionRoute',
+    default: null
+  },
   notes: {
     type: String,
     default: ''
@@ -86,6 +120,9 @@ const wasteReportSchema = new mongoose.Schema({
     default: false
   },
   pointsAwardedAt: {
+    type: Date
+  },
+  completedAt: {
     type: Date
   },
   timeline: [
@@ -100,5 +137,11 @@ const wasteReportSchema = new mongoose.Schema({
     default: Date.now
   }
 });
+
+wasteReportSchema.index({ status: 1, createdAt: -1 });
+wasteReportSchema.index({ ward: 1 });
+wasteReportSchema.index({ category: 1 });
+wasteReportSchema.index({ 'assignedDriver.driverId': 1 });
+wasteReportSchema.index({ 'citizen.userId': 1 });
 
 export default mongoose.model('WasteReport', wasteReportSchema);

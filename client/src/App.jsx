@@ -177,7 +177,7 @@ export default function App() {
         </main>
       ) : (
         // Protected application views (once logged in, our story is never displayed)
-        <main style={{ flex: 1, padding: '24px 20px 80px', maxWidth: 1300, width: '100%', margin: '0 auto' }}>
+        <main style={{ flex: 1, padding: '24px 20px 80px', maxWidth: activeTab === 'admin' ? 1560 : 1300, width: '100%', margin: '0 auto' }}>
           {activeTab === 'home' && (
             <CitizenHome
               onOpenPickup={handleOpenPickup}

@@ -55,11 +55,59 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'
   },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  employeeId: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  assignedWard: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  assignedWardId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Ward',
+    default: null
+  },
+  assignedShift: {
+    type: String,
+    enum: ['Morning (06:00 - 14:00)', 'Afternoon (14:00 - 22:00)', 'Night (22:00 - 06:00)', 'Flexible', ''],
+    default: 'Morning (06:00 - 14:00)'
+  },
+  assignedVehicleId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'CollectionVehicle',
+    default: null
+  },
+  assignedVehiclePlate: {
+    type: String,
+    default: ''
+  },
+  operationalStatus: {
+    type: String,
+    enum: ['Available', 'On Duty', 'Assigned', 'Off Duty', 'On Leave', 'Inactive'],
+    default: 'Available'
+  },
+  assignmentHistory: [
+    {
+      action: { type: String, required: true },
+      details: { type: String, default: '' },
+      timestamp: { type: Date, default: Date.now }
+    }
+  ],
   createdAt: {
     type: Date,
     default: Date.now
   }
 });
+
+userSchema.index({ role: 1, isActive: 1 });
+userSchema.index({ assignedWard: 1 });
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {
