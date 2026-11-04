@@ -9,7 +9,7 @@ import AdminDashboard from './components/AdminDashboard';
 import PickupRequestModal from './components/PickupRequestModal';
 import AuthModal from './components/AuthModal';
 import { api } from './services/api';
-import { Home, MapPin, Calendar, BarChart3, BookOpen, ShieldAlert, LogIn, Compass } from 'lucide-react';
+import { Home, MapPin, Calendar, BarChart3, BookOpen, ShieldAlert, LogIn } from 'lucide-react';
 
 export default function App() {
   // Public landing page is the default route for unauthenticated visitors
@@ -79,6 +79,11 @@ export default function App() {
   // Protected tab navigation: unauthenticated users cannot access application features
   const handleProtectedTabChange = (targetTab) => {
     if (targetTab === 'landing') {
+      if (currentUser) {
+        // Once logged in, public story page is never displayed
+        setActiveTab(currentUser.role === 'admin' ? 'admin' : 'home');
+        return;
+      }
       setActiveTab('landing');
       return;
     }
@@ -163,15 +168,15 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      {(!currentUser || activeTab === 'landing') ? (
-        // Public storytelling landing page
+      {!currentUser ? (
+        // Public storytelling landing page (only for unauthenticated visitors)
         <main style={{ flex: 1, width: '100%', margin: 0, padding: 0 }}>
           <GreenJourneyLanding
             onOpenAuth={handleOpenAuth}
           />
         </main>
       ) : (
-        // Protected application views (accessible exclusively to authenticated users)
+        // Protected application views (once logged in, our story is never displayed)
         <main style={{ flex: 1, padding: '24px 20px 80px', maxWidth: 1300, width: '100%', margin: '0 auto' }}>
           {activeTab === 'home' && (
             <CitizenHome
@@ -284,7 +289,6 @@ export default function App() {
         >
           {[
             { id: 'home', label: 'Portal', icon: Home },
-            { id: 'landing', label: 'Story', icon: Compass },
             { id: 'catalog', label: 'Guide', icon: BookOpen },
             { id: 'schedule', label: 'Schedule', icon: Calendar },
             { id: 'centres', label: 'Centres', icon: MapPin },

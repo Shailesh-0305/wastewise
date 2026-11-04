@@ -22,10 +22,9 @@ export default function Navbar({
   userPoints = 0 
 }) {
   // Strict separation: Guests see ONLY public storytelling and authentication
-  // Authenticated users see the full suite of municipal application features
+  // Authenticated users see the municipal application features (no public story page)
   const authenticatedTabs = [
     { id: 'home', label: 'Citizen Portal', icon: Recycle },
-    { id: 'landing', label: 'Our Story', icon: Compass },
     { id: 'centres', label: 'Recycling Centres', icon: MapPin },
     { id: 'schedule', label: 'Collection Schedule', icon: Calendar },
     { id: 'catalog', label: 'Waste Guide', icon: BookOpen },
