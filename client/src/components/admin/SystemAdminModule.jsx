@@ -9,8 +9,8 @@ import {
 } from './AdminSharedUI';
 
 const AUDIT_ENTITY_TYPES = [
-  'All', 'WasteReport', 'Worker', 'Vehicle', 'Ward', 'CollectionSchedule',
-  'CollectionRoute', 'RecyclingCentre', 'Complaint', 'Campaign', 'User', 'SystemSettings'
+  'All', 'PickupRequest', 'Worker', 'Vehicle', 'Ward', 'Schedule',
+  'Route', 'RecyclingCentre', 'DisposalFacility', 'Complaint', 'Campaign', 'User', 'SystemSettings'
 ];
 
 export default function SystemAdminModule({ initialTab = 'users', toast }) {

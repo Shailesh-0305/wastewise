@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { X, Lock, Mail, User as UserIcon, Phone, MapPin, CheckCircle, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Lock, Mail, User as UserIcon, Phone, MapPin, CheckCircle, AlertCircle, ShieldCheck, Truck } from 'lucide-react';
 import { api } from '../services/api';
 
-export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultTab = 'login' }) {
+export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultTab = 'login', defaultRole = 'citizen' }) {
   const [tab, setTab] = useState(defaultTab); // 'login' or 'register'
+  const [selectedRole, setSelectedRole] = useState(defaultRole);
   const [email, setEmail] = useState('citizen.demo@wastewise.org');
   const [password, setPassword] = useState('citizen123');
   const [name, setName] = useState('');
@@ -16,6 +17,26 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultTab =
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setTab(defaultTab);
+    setSelectedRole(defaultRole);
+    setError('');
+    setSuccessMsg('');
+    if (defaultTab === 'login') {
+      if (defaultRole === 'admin') {
+        setEmail('admin@wastewise.org');
+        setPassword('adminPass123!');
+      } else if (defaultRole === 'driver') {
+        setEmail('driver.demo@wastewise.org');
+        setPassword('driver123');
+      } else {
+        setEmail('citizen.demo@wastewise.org');
+        setPassword('citizen123');
+      }
+    }
+  }, [isOpen, defaultTab, defaultRole]);
 
   if (!isOpen) return null;
 
@@ -148,11 +169,15 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultTab =
         </div>
 
         <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary-forest)', marginBottom: 4 }}>
-          {tab === 'login' ? 'Welcome Back' : 'Join WasteWise'}
+          {tab === 'login'
+            ? (selectedRole === 'admin' ? 'Municipal Admin Command Centre' : selectedRole === 'driver' ? 'Collection Crew Portal' : 'Citizen Portal Sign In')
+            : 'Join WasteWise'}
         </h3>
-        <p style={{ fontSize: '0.8rem', color: 'var(--secondary-text)', marginBottom: 18 }}>
+        <p style={{ fontSize: '0.8rem', color: 'var(--secondary-text)', marginBottom: 16 }}>
           {tab === 'login' 
-            ? 'Sign in to access your pickup requests and points.' 
+            ? (selectedRole === 'admin'
+                ? 'Access the separate 18-module Coimbatore municipal operations & backend command centre.'
+                : 'Sign in to access your citizen pickup requests, schedules, and recycling points.')
             : 'Register to schedule doorstep waste pickups and track recycling metrics.'}
         </p>
 
@@ -160,63 +185,106 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultTab =
           <div style={{
             background: 'var(--very-light-mint)',
             border: '1.5px solid var(--soft-leaf-green)',
-            borderRadius: 14,
-            padding: '10px 14px',
+            borderRadius: 16,
+            padding: '12px 14px',
             marginBottom: 16
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary-forest)' }}>
-                Demo Credentials Pre-filled
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--primary-forest)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                Select Workspace Portal (Pre-filled)
               </span>
               <span style={{
                 background: 'var(--primary-forest)',
                 color: '#ffffff',
                 padding: '2px 8px',
                 borderRadius: 999,
-                fontSize: '0.68rem',
+                fontSize: '0.66rem',
                 fontWeight: 700
               }}>
-                Ready to Sign In
+                1-Click Ready
               </span>
             </div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <button
                 type="button"
                 onClick={() => {
+                  setSelectedRole('citizen');
                   setEmail('citizen.demo@wastewise.org');
                   setPassword('citizen123');
+                  setError('');
                 }}
                 style={{
-                  padding: '4px 10px',
-                  borderRadius: 999,
-                  fontSize: '0.72rem',
+                  padding: '8px 10px',
+                  borderRadius: 12,
+                  fontSize: '0.76rem',
                   fontWeight: 700,
                   background: email === 'citizen.demo@wastewise.org' ? 'var(--primary-forest)' : '#ffffff',
                   color: email === 'citizen.demo@wastewise.org' ? '#ffffff' : 'var(--primary-forest)',
-                  border: '1px solid var(--soft-leaf-green)',
-                  cursor: 'pointer'
+                  border: '1.5px solid var(--soft-leaf-green)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6
                 }}
               >
-                Citizen Demo
+                <UserIcon size={14} />
+                <span>Citizen Dashboard</span>
               </button>
               <button
                 type="button"
                 onClick={() => {
+                  setSelectedRole('admin');
                   setEmail('admin@wastewise.org');
-                  setPassword('admin123');
+                  setPassword('adminPass123!');
+                  setError('');
                 }}
                 style={{
-                  padding: '4px 10px',
-                  borderRadius: 999,
-                  fontSize: '0.72rem',
+                  padding: '8px 10px',
+                  borderRadius: 12,
+                  fontSize: '0.76rem',
                   fontWeight: 700,
-                  background: email === 'admin@wastewise.org' ? 'var(--primary-forest)' : '#ffffff',
-                  color: email === 'admin@wastewise.org' ? '#ffffff' : 'var(--primary-forest)',
-                  border: '1px solid var(--soft-leaf-green)',
-                  cursor: 'pointer'
+                  background: email === 'admin@wastewise.org' ? '#064e3b' : '#ffffff',
+                  color: email === 'admin@wastewise.org' ? '#ffffff' : '#064e3b',
+                  border: '1.5px solid var(--soft-leaf-green)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6
                 }}
               >
-                Municipal Admin
+                <ShieldCheck size={14} />
+                <span>Admin Command</span>
+              </button>
+            </div>
+            <div style={{ marginTop: 8 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedRole('driver');
+                  setEmail('driver.demo@wastewise.org');
+                  setPassword('driver123');
+                  setError('');
+                }}
+                style={{
+                  width: '100%',
+                  padding: '6px 10px',
+                  borderRadius: 10,
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  background: email === 'driver.demo@wastewise.org' ? 'var(--secondary-green)' : '#ffffff',
+                  color: email === 'driver.demo@wastewise.org' ? '#ffffff' : 'var(--secondary-text)',
+                  border: '1px solid var(--border-light)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6
+                }}
+              >
+                <Truck size={13} />
+                <span>Collection Worker / Driver Demo (driver.demo@wastewise.org)</span>
               </button>
             </div>
           </div>

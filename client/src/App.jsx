@@ -9,19 +9,29 @@ import AdminDashboard from './components/AdminDashboard';
 import PickupRequestModal from './components/PickupRequestModal';
 import AuthModal from './components/AuthModal';
 import { api } from './services/api';
-import { Home, MapPin, Calendar, BarChart3, BookOpen, ShieldAlert, LogIn } from 'lucide-react';
+import { Home, MapPin, Calendar, BookOpen } from 'lucide-react';
 
 export default function App() {
-  // Public landing page is the default route for unauthenticated visitors
+  // Public landing page is the default route for unauthenticated visitors;
+  // Admin and Citizen workspaces are strictly separated upon authentication.
   const [activeTab, setActiveTab] = useState(() => {
-    return localStorage.getItem('token') ? 'home' : 'landing';
+    const token = localStorage.getItem('token');
+    if (!token) return 'landing';
+    try {
+      const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
+      return storedUser?.role === 'admin' ? 'admin' : 'home';
+    } catch {
+      return 'home';
+    }
   });
+  const [activeAdminModule, setActiveAdminModule] = useState('dashboard');
   const [currentUser, setCurrentUser] = useState(null);
   const [reports, setReports] = useState([]);
   const [userPoints, setUserPoints] = useState(0);
   const [isPickupOpen, setIsPickupOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authTab, setAuthTab] = useState('login');
+  const [authRole, setAuthRole] = useState('citizen');
   const [catalogSearchQuery, setCatalogSearchQuery] = useState('');
 
   const fetchReports = useCallback(async () => {
@@ -52,11 +62,11 @@ export default function App() {
         setCurrentUser(res.user);
         setUserPoints(res.user.ecoPoints || 0);
         fetchReports();
-        // Route role appropriately upon verified authentication
+        // Strictly route Admin to Admin Command Centre and Citizen/Driver to Citizen Portal
         if (res.user.role === 'admin') {
-          setActiveTab(prev => prev === 'landing' ? 'admin' : prev);
+          setActiveTab('admin');
         } else {
-          setActiveTab(prev => prev === 'landing' ? 'home' : prev);
+          setActiveTab(prev => (prev === 'landing' || prev === 'admin') ? 'home' : prev);
         }
       } else {
         api.logout();
@@ -76,11 +86,11 @@ export default function App() {
     checkCurrentUser();
   }, [checkCurrentUser]);
 
-  // Protected tab navigation: unauthenticated users cannot access application features
+  // Protected tab navigation: unauthenticated users cannot access application features;
+  // Admin and Citizen workspaces remain strictly separate.
   const handleProtectedTabChange = (targetTab) => {
     if (targetTab === 'landing') {
       if (currentUser) {
-        // Once logged in, public story page is never displayed
         setActiveTab(currentUser.role === 'admin' ? 'admin' : 'home');
         return;
       }
@@ -89,9 +99,14 @@ export default function App() {
     }
 
     if (!currentUser) {
-      // Intercept attempt to access protected features and require authentication
       setAuthTab('login');
+      setAuthRole(targetTab === 'admin' ? 'admin' : 'citizen');
       setIsAuthOpen(true);
+      return;
+    }
+
+    if (currentUser.role === 'admin') {
+      setActiveTab('admin');
       return;
     }
 
@@ -103,10 +118,11 @@ export default function App() {
     setActiveTab(targetTab);
   };
 
-  // Handle pickup request opening: requires authentication
+  // Handle pickup request opening: requires Citizen authentication
   const handleOpenPickup = () => {
     if (!currentUser) {
       setAuthTab('login');
+      setAuthRole('citizen');
       setIsAuthOpen(true);
       return;
     }
@@ -115,7 +131,6 @@ export default function App() {
 
   const handleReportCreated = (newReport) => {
     setReports(prev => [newReport, ...prev]);
-    // Refresh user's actual profile points from the backend
     checkCurrentUser();
     setActiveTab('home');
   };
@@ -126,6 +141,7 @@ export default function App() {
     fetchReports();
     if (user.role === 'admin') {
       setActiveTab('admin');
+      setActiveAdminModule('dashboard');
     } else {
       setActiveTab('home');
     }
@@ -142,6 +158,7 @@ export default function App() {
   const handleNavigateCatalog = (query = '') => {
     if (!currentUser) {
       setAuthTab('login');
+      setAuthRole('citizen');
       setIsAuthOpen(true);
       return;
     }
@@ -149,17 +166,22 @@ export default function App() {
     setActiveTab('catalog');
   };
 
-  const handleOpenAuth = (tab = 'login') => {
+  const handleOpenAuth = (tab = 'login', role = 'citizen') => {
     setAuthTab(tab);
+    setAuthRole(role);
     setIsAuthOpen(true);
   };
 
+  const isAdmin = currentUser?.role === 'admin';
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--main-background)' }}>
-      {/* Top Main Navigation */}
+      {/* Top Main Navigation (Role-Separated) */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={handleProtectedTabChange}
+        activeAdminModule={activeAdminModule}
+        setActiveAdminModule={setActiveAdminModule}
         currentUser={currentUser}
         onOpenPickup={handleOpenPickup}
         onOpenAuth={handleOpenAuth}
@@ -175,9 +197,18 @@ export default function App() {
             onOpenAuth={handleOpenAuth}
           />
         </main>
+      ) : isAdmin ? (
+        // DEDICATED MUNICIPAL ADMIN COMMAND CENTRE (Completely separate from User Dashboard)
+        <main style={{ flex: 1, padding: '20px 20px 60px', maxWidth: 1580, width: '100%', margin: '0 auto' }}>
+          <AdminDashboard
+            activeModule={activeAdminModule}
+            setActiveModule={setActiveAdminModule}
+            onRefreshNeeded={fetchReports}
+          />
+        </main>
       ) : (
-        // Protected application views (once logged in, our story is never displayed)
-        <main style={{ flex: 1, padding: '24px 20px 80px', maxWidth: activeTab === 'admin' ? 1560 : 1300, width: '100%', margin: '0 auto' }}>
+        // DEDICATED CITIZEN / USER PORTAL DASHBOARD (Completely separate from Admin Command Centre)
+        <main style={{ flex: 1, padding: '24px 20px 80px', maxWidth: 1300, width: '100%', margin: '0 auto' }}>
           {activeTab === 'home' && (
             <CitizenHome
               onOpenPickup={handleOpenPickup}
@@ -207,67 +238,11 @@ export default function App() {
               initialSearchQuery={catalogSearchQuery}
             />
           )}
-
-          {activeTab === 'admin' && (
-            currentUser?.role === 'admin' ? (
-              <AdminDashboard
-                onRefreshNeeded={fetchReports}
-              />
-            ) : (
-              <div style={{
-                maxWidth: 580,
-                margin: '60px auto',
-                background: '#ffffff',
-                border: '1.5px solid var(--border-light)',
-                borderRadius: 24,
-                padding: '40px 32px',
-                textAlign: 'center',
-                boxShadow: '0 8px 30px rgba(0,0,0,0.04)'
-              }}>
-                <div style={{
-                  width: 54,
-                  height: 54,
-                  borderRadius: '50%',
-                  background: '#fef2f2',
-                  border: '1px solid #fecaca',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 16px',
-                  color: '#dc2626'
-                }}>
-                  <ShieldAlert size={28} />
-                </div>
-                <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--primary-text)' }}>
-                  Municipal Fleet Access Restricted
-                </h3>
-                <p style={{ fontSize: '0.86rem', color: 'var(--secondary-text)', marginTop: 8, lineHeight: 1.5 }}>
-                  The Municipal Admin & Fleet Route Optimization dashboard is restricted to authorized municipal officers.
-                </p>
-                <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 22 }}>
-                  <button
-                    onClick={() => handleOpenAuth('login')}
-                    className="btn-primary"
-                    style={{ padding: '9px 20px', fontSize: '0.86rem' }}
-                  >
-                    <LogIn size={15} /> Sign In as Admin
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('home')}
-                    className="btn-secondary"
-                    style={{ padding: '9px 18px', fontSize: '0.86rem' }}
-                  >
-                    Return to Portal
-                  </button>
-                </div>
-              </div>
-            )
-          )}
         </main>
       )}
 
-      {/* Floating Mobile Bottom Navigation: Only for Authenticated Users */}
-      {currentUser && (
+      {/* Floating Mobile Bottom Navigation: Only for Authenticated Citizens/Users */}
+      {currentUser && !isAdmin && (
         <nav 
           className="mobile-bottom-nav"
           aria-label="Mobile Navigation"
@@ -291,8 +266,7 @@ export default function App() {
             { id: 'home', label: 'Portal', icon: Home },
             { id: 'catalog', label: 'Guide', icon: BookOpen },
             { id: 'schedule', label: 'Schedule', icon: Calendar },
-            { id: 'centres', label: 'Centres', icon: MapPin },
-            ...(currentUser.role === 'admin' ? [{ id: 'admin', label: 'Admin', icon: BarChart3 }] : [])
+            { id: 'centres', label: 'Centres', icon: MapPin }
           ].map(btn => {
             const Icon = btn.icon;
             const isActive = activeTab === btn.id;
@@ -305,9 +279,6 @@ export default function App() {
                     setCatalogSearchQuery('');
                   }
                   setActiveTab(btn.id);
-                  if (btn.id === 'landing') {
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }
                 }}
                 style={{
                   display: 'flex',
@@ -338,15 +309,18 @@ export default function App() {
         onClose={() => setIsAuthOpen(false)}
         onAuthSuccess={handleAuthSuccess}
         defaultTab={authTab}
+        defaultRole={authRole}
       />
 
-      {/* Pickup Request Modal */}
-      <PickupRequestModal
-        isOpen={isPickupOpen}
-        onClose={() => setIsPickupOpen(false)}
-        onReportCreated={handleReportCreated}
-        currentUser={currentUser}
-      />
+      {/* Pickup Request Modal (Citizen Portal) */}
+      {!isAdmin && (
+        <PickupRequestModal
+          isOpen={isPickupOpen}
+          onClose={() => setIsPickupOpen(false)}
+          onReportCreated={handleReportCreated}
+          currentUser={currentUser}
+        />
+      )}
     </div>
   );
 }

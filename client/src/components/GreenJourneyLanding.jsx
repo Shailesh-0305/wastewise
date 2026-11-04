@@ -12,7 +12,8 @@ import {
   PlusCircle,
   MapPin,
   Calendar,
-  BookOpen
+  BookOpen,
+  ShieldCheck
 } from 'lucide-react';
 import { ForestSilhouettes, FloatingLeaf } from './NatureDecorations';
 
@@ -442,11 +443,11 @@ export default function GreenJourneyLanding({ onOpenAuth }) {
             Together, we can transform the way our city collects, manages and recycles waste.
           </p>
 
-          {/* Authentication Actions */}
+          {/* Authentication Actions: Separate Citizen Portal & Municipal Admin Command Centre */}
           <div 
             style={{
               display: 'flex',
-              gap: 16,
+              gap: 14,
               justifyContent: 'center',
               alignItems: 'center',
               flexWrap: 'wrap',
@@ -454,11 +455,11 @@ export default function GreenJourneyLanding({ onOpenAuth }) {
             }}
           >
             <button
-              onClick={() => onOpenAuth('login')}
+              onClick={() => onOpenAuth('login', 'citizen')}
               className="btn-primary"
               style={{
-                padding: '14px 34px',
-                fontSize: '1.02rem',
+                padding: '14px 30px',
+                fontSize: '1rem',
                 fontWeight: 700,
                 borderRadius: 999,
                 display: 'inline-flex',
@@ -468,15 +469,36 @@ export default function GreenJourneyLanding({ onOpenAuth }) {
               }}
             >
               <LogIn size={18} />
-              <span>Sign In</span>
+              <span>Citizen Sign In</span>
             </button>
 
             <button
-              onClick={() => onOpenAuth('register')}
+              onClick={() => onOpenAuth('login', 'admin')}
+              style={{
+                padding: '13px 28px',
+                fontSize: '0.98rem',
+                fontWeight: 800,
+                borderRadius: 999,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 10,
+                background: '#052e16',
+                color: '#86efac',
+                border: '1.5px solid #166534',
+                cursor: 'pointer',
+                boxShadow: '0 8px 24px rgba(5, 46, 22, 0.24)'
+              }}
+            >
+              <ShieldCheck size={18} color="#86efac" />
+              <span>Admin Command Centre</span>
+            </button>
+
+            <button
+              onClick={() => onOpenAuth('register', 'citizen')}
               className="btn-secondary"
               style={{
-                padding: '13px 30px',
-                fontSize: '1rem',
+                padding: '13px 28px',
+                fontSize: '0.98rem',
                 fontWeight: 700,
                 borderRadius: 999,
                 display: 'inline-flex',
