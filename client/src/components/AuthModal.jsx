@@ -4,8 +4,8 @@ import { api } from '../services/api';
 
 export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultTab = 'login' }) {
   const [tab, setTab] = useState(defaultTab); // 'login' or 'register'
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('citizen.demo@wastewise.org');
+  const [password, setPassword] = useState('citizen123');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [street, setStreet] = useState('');
@@ -110,7 +110,13 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultTab =
           border: '1.5px solid var(--border-light)'
         }}>
           <button
-            onClick={() => { setTab('login'); setError(''); setSuccessMsg(''); }}
+            onClick={() => { 
+              setTab('login'); 
+              setError(''); 
+              setSuccessMsg(''); 
+              if (!email) setEmail('citizen.demo@wastewise.org'); 
+              if (!password) setPassword('citizen123'); 
+            }}
             style={{
               flex: 1,
               padding: '8px 12px',
@@ -149,6 +155,72 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultTab =
             ? 'Sign in to access your pickup requests and points.' 
             : 'Register to schedule doorstep waste pickups and track recycling metrics.'}
         </p>
+
+        {tab === 'login' && (
+          <div style={{
+            background: 'var(--very-light-mint)',
+            border: '1.5px solid var(--soft-leaf-green)',
+            borderRadius: 14,
+            padding: '10px 14px',
+            marginBottom: 16
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary-forest)' }}>
+                Demo Credentials Pre-filled
+              </span>
+              <span style={{
+                background: 'var(--primary-forest)',
+                color: '#ffffff',
+                padding: '2px 8px',
+                borderRadius: 999,
+                fontSize: '0.68rem',
+                fontWeight: 700
+              }}>
+                Ready to Sign In
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('citizen.demo@wastewise.org');
+                  setPassword('citizen123');
+                }}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: 999,
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  background: email === 'citizen.demo@wastewise.org' ? 'var(--primary-forest)' : '#ffffff',
+                  color: email === 'citizen.demo@wastewise.org' ? '#ffffff' : 'var(--primary-forest)',
+                  border: '1px solid var(--soft-leaf-green)',
+                  cursor: 'pointer'
+                }}
+              >
+                Citizen Demo
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('admin@wastewise.org');
+                  setPassword('admin123');
+                }}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: 999,
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  background: email === 'admin@wastewise.org' ? 'var(--primary-forest)' : '#ffffff',
+                  color: email === 'admin@wastewise.org' ? '#ffffff' : 'var(--primary-forest)',
+                  border: '1px solid var(--soft-leaf-green)',
+                  cursor: 'pointer'
+                }}
+              >
+                Municipal Admin
+              </button>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div style={{
