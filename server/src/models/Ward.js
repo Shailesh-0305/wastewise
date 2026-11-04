@@ -76,3 +76,4 @@ const wardSchema = new mongoose.Schema({
 wardSchema.index({ zone: 1, operationalStatus: 1 });
 
 export default mongoose.model('Ward', wardSchema);
+

@@ -154,3 +154,4 @@ collectionRouteSchema.index({ 'assignedWorker.workerId': 1 });
 collectionRouteSchema.index({ 'assignedVehicle.vehicleId': 1 });
 
 export default mongoose.model('CollectionRoute', collectionRouteSchema);
+

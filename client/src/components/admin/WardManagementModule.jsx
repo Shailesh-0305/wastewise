@@ -885,3 +885,4 @@ export default function WardManagementModule({ initialView = 'wards', showToast 
     </div>
   );
 }
+

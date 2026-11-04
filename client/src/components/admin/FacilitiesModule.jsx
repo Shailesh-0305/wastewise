@@ -838,3 +838,4 @@ export default function FacilitiesModule({ initialTab = 'recycling-centres', toa
     </div>
   );
 }
+

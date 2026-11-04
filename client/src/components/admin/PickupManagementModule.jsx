@@ -879,3 +879,4 @@ export default function PickupManagementModule({ showToast, onGlobalRefresh }) {
     </div>
   );
 }
+

@@ -110,3 +110,4 @@ collectionVehicleSchema.index({ operationalStatus: 1, isActive: 1 });
 collectionVehicleSchema.index({ assignedWard: 1 });
 
 export default mongoose.model('CollectionVehicle', collectionVehicleSchema);
+

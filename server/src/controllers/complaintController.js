@@ -325,3 +325,4 @@ export const updateComplaint = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+

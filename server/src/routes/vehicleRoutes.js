@@ -19,3 +19,4 @@ router.route('/:id')
   .patch(updateVehicle);
 
 export default router;
+

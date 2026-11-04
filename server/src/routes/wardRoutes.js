@@ -16,3 +16,4 @@ router.put('/:id', protect, authorize('admin'), updateWard);
 router.patch('/:id', protect, authorize('admin'), updateWard);
 
 export default router;
+

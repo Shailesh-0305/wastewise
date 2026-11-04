@@ -106,3 +106,4 @@ const systemSettingsSchema = new mongoose.Schema({
 });
 
 export default mongoose.model('SystemSettings', systemSettingsSchema);
+

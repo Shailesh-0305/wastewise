@@ -19,3 +19,4 @@ router.route('/:id')
   .delete(protect, authorize('admin'), deleteCampaign);
 
 export default router;
+

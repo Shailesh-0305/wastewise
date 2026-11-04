@@ -7,6 +7,11 @@ const complaintSchema = new mongoose.Schema({
     unique: true,
     default: () => 'CMP-' + Math.floor(10000 + Math.random() * 90000)
   },
+  title: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   citizen: {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     name: { type: String, required: true, trim: true },
@@ -114,3 +119,4 @@ complaintSchema.index({ ward: 1 });
 complaintSchema.index({ 'citizen.userId': 1 });
 
 export default mongoose.model('Complaint', complaintSchema);
+

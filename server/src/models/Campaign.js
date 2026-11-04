@@ -88,3 +88,4 @@ campaignSchema.index({ status: 1, startDate: 1 });
 campaignSchema.index({ targetWards: 1 });
 
 export default mongoose.model('Campaign', campaignSchema);
+

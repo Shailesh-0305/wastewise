@@ -33,3 +33,4 @@ router.put('/settings', updateSystemSettings);
 router.patch('/settings', updateSystemSettings);
 
 export default router;
+

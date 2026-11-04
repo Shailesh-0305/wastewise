@@ -65,3 +65,4 @@ auditLogSchema.index({ entityType: 1, action: 1 });
 auditLogSchema.index({ adminId: 1 });
 
 export default mongoose.model('AuditLog', auditLogSchema);
+

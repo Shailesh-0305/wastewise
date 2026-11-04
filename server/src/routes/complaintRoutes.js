@@ -19,3 +19,4 @@ router.route('/:id')
   .put(protect, authorize('admin'), updateComplaint);
 
 export default router;
+
