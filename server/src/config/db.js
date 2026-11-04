@@ -1,4 +1,12 @@
 import mongoose from 'mongoose';
+import dns from 'dns';
+
+// Ensure DNS servers resolve MongoDB SRV records reliably on all network configurations
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch {
+  // Use system default if setServers is unavailable
+}
 
 export const connectDB = async () => {
   const mongoUri = process.env.MONGODB_URI;
