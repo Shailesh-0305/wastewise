@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Lock, Mail, User as UserIcon, Phone, MapPin, CheckCircle, AlertCircle, ShieldCheck, Truck } from 'lucide-react';
+import { X, Lock, Mail, User as UserIcon, Phone, MapPin, CheckCircle, AlertCircle, ShieldCheck } from 'lucide-react';
 import { api } from '../services/api';
 
 export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultTab = 'login', defaultRole = 'citizen' }) {
@@ -28,9 +28,6 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultTab =
       if (defaultRole === 'admin') {
         setEmail('admin@wastewise.org');
         setPassword('adminPass123!');
-      } else if (defaultRole === 'driver') {
-        setEmail('driver.demo@wastewise.org');
-        setPassword('driver123');
       } else {
         setEmail('citizen.demo@wastewise.org');
         setPassword('citizen123');
@@ -256,35 +253,6 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultTab =
               >
                 <ShieldCheck size={14} />
                 <span>Admin Command</span>
-              </button>
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedRole('driver');
-                  setEmail('driver.demo@wastewise.org');
-                  setPassword('driver123');
-                  setError('');
-                }}
-                style={{
-                  width: '100%',
-                  padding: '6px 10px',
-                  borderRadius: 10,
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  background: email === 'driver.demo@wastewise.org' ? 'var(--secondary-green)' : '#ffffff',
-                  color: email === 'driver.demo@wastewise.org' ? '#ffffff' : 'var(--secondary-text)',
-                  border: '1px solid var(--border-light)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6
-                }}
-              >
-                <Truck size={13} />
-                <span>Collection Worker / Driver Demo (driver.demo@wastewise.org)</span>
               </button>
             </div>
           </div>
