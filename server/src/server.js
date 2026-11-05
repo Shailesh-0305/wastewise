@@ -53,6 +53,23 @@ app.use('/api/complaints', complaintRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/admin', adminSystemRoutes);
 
+// Root Route Welcome & Status
+app.get('/', (req, res) => {
+  res.json({
+    message: 'WasteWise API Server is up and running!',
+    docs: '/api/health',
+    endpoints: {
+      health: '/api/health',
+      auth: '/api/auth',
+      reports: '/api/reports',
+      centers: '/api/centers',
+      schedules: '/api/schedules',
+      analytics: '/api/analytics',
+      routes: '/api/routes'
+    }
+  });
+});
+
 // Health Check
 app.get('/api/health', (req, res) => {
   res.json({
