@@ -13,29 +13,30 @@
 
 ## 📸 Application Preview & Visual Tour
 
-### 1. Environmental Storytelling Hero & Green Journey
-The landing page greets citizens with an authentication-first environmental narrative connecting household actions to Coimbatore's urban ecology.
+### 1. Environmental Storytelling Landing Page
+Authentication-first environmental storytelling page introducing the WasteWise mission to the residents of Coimbatore.
 
-![WasteWise Landing Hero](docs/images/hero-landscape.jpg)
+![WasteWise Environmental Landing Page](docs/images/01-landing-hero.jpg)
 
-### 2. Animated Waste Journey & Five-Stage Process
-A continuous animated road spine and interactive checkpoints guide visitors through *Source Segregation*, *Doorstep Collection*, *Material Recovery Facilities (MRFs)*, *Vellalore Integrated Plant*, and *Clean City Outcomes*.
+### 2. Five-Stage Animated Green Journey
+A continuous interactive road spine and process highlights guiding visitors through *Source Segregation*, *Doorstep Collection*, *Material Recovery Facilities (MRFs)*, and *Sustainable Disposal*.
 
-![Five Stage Waste Process](docs/images/landing-story-journey.jpg)
+![Five-Stage Waste Journey](docs/images/02-storytelling-journey.jpg)
 
-### 3. Source Segregation at Home (Stage 1)
-Empowering households across Coimbatore to segregate dry recyclables, organics, and domestic hazardous waste.
+### 3. Citizen Portal Dashboard & Live Collection Tracking
+Authenticated citizen interface featuring Eco-Points balance, quick action cards (*Pickup Request, Recycling Centres, Collection Schedule, Waste Guide*), and genuine Leaflet-based pickup tracking.
 
-| Household Segregation | Material Recovery & Composting |
-| :---: | :---: |
-| ![Household Segregation](docs/images/home-segregation.jpg) | ![Recycle & Compost](docs/images/recycle-compost.jpg) |
+![Citizen Portal Dashboard](docs/images/03-citizen-portal.jpg)
 
-### 4. Secondary Sorting & Clean Coimbatore Vision
-From automated baling at decentralized dry-waste collection centres (DWCCs) to sustainable bio-composting and resource diversion.
+### 4. Admin Command Centre – Waste Analytics & Reporting
+Central municipal operations dashboard featuring live KPI counters, 6-month historical collection trend charts, and categorical waste distribution doughnut breakdown.
 
-| Sorting & Recovery Hub | Clean Coimbatore Horizon |
-| :---: | :---: |
-| ![Sorting Facility](docs/images/sorting-facility.jpg) | ![Green Coimbatore](docs/images/green-coimbatore.jpg) |
+![Admin Command Centre Analytics](docs/images/04-admin-analytics.jpg)
+
+### 5. Fleet Vehicles, Capacity & Workforce Monitoring
+Administrative fleet management displaying registered municipal collection vehicles (Compactors, Mini Tippers, E-Carts, Hazmat Vans), payload capacities, live utilization metrics, and maintenance schedules.
+
+![Fleet and Workforce Management](docs/images/05-fleet-management.jpg)
 
 ---
 
