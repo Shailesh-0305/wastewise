@@ -4,9 +4,8 @@
 > Problem: Inefficient waste collection, lack of household segregation, and non-optimized fleet routes cause severe environmental contamination and excessive municipal carbon emissions.  
 > Purpose: Empower residents of Coimbatore, Tamil Nadu to schedule doorstep waste pickups, categorize recyclable materials across 7 standard streams, explore recycling centres, track collections with genuine telemetry, and assist municipal fleet supervisors with Traveling Salesperson (TSP) collection route optimization and database-driven waste analytics.
 
-🚀 **Live Hosted App**: **[https://shailesh-0305.github.io/wastewise/](https://shailesh-0305.github.io/wastewise/)**  
-📂 **GitHub Repository**: **[https://github.com/Shailesh-0305/wastewise](https://github.com/Shailesh-0305/wastewise)**
-
+**Backend Deployment Link** : https://wastewise-35c6.onrender.com
+**Frontend Deployment Link** : https://wastewise-1-gmka.onrender.com
 ---
 
 ## 📍 Coimbatore-First Municipal Platform
