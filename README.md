@@ -8,6 +8,7 @@
 **Backend Deployment Link** : https://wastewise-35c6.onrender.com
 
 **Frontend Deployment Link** : https://wastewise-1-gmka.onrender.com
+
 ---
 
 ## 📍 Coimbatore-First Municipal Platform
