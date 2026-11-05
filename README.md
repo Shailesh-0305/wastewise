@@ -11,6 +11,34 @@
 
 ---
 
+## 📸 Application Preview & Visual Tour
+
+### 1. Environmental Storytelling Hero & Green Journey
+The landing page greets citizens with an authentication-first environmental narrative connecting household actions to Coimbatore's urban ecology.
+
+![WasteWise Landing Hero](docs/images/hero-landscape.jpg)
+
+### 2. Animated Waste Journey & Five-Stage Process
+A continuous animated road spine and interactive checkpoints guide visitors through *Source Segregation*, *Doorstep Collection*, *Material Recovery Facilities (MRFs)*, *Vellalore Integrated Plant*, and *Clean City Outcomes*.
+
+![Five Stage Waste Process](docs/images/landing-story-journey.jpg)
+
+### 3. Source Segregation at Home (Stage 1)
+Empowering households across Coimbatore to segregate dry recyclables, organics, and domestic hazardous waste.
+
+| Household Segregation | Material Recovery & Composting |
+| :---: | :---: |
+| ![Household Segregation](docs/images/home-segregation.jpg) | ![Recycle & Compost](docs/images/recycle-compost.jpg) |
+
+### 4. Secondary Sorting & Clean Coimbatore Vision
+From automated baling at decentralized dry-waste collection centres (DWCCs) to sustainable bio-composting and resource diversion.
+
+| Sorting & Recovery Hub | Clean Coimbatore Horizon |
+| :---: | :---: |
+| ![Sorting Facility](docs/images/sorting-facility.jpg) | ![Green Coimbatore](docs/images/green-coimbatore.jpg) |
+
+---
+
 ## 📍 Coimbatore-First Municipal Platform
 
 WasteWise is tailored specifically for residents and municipal waste-collection operations in **Coimbatore, Tamil Nadu, India**:
